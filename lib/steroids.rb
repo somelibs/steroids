@@ -1,5 +1,10 @@
 require "steroids/railtie"
 
+require "steroids/concerns/controller"
+require "steroids/concerns/error"
+require "steroids/concerns/model"
+require "steroids/concerns/serializer"
+
 require "steroids/base/class"
 require "steroids/base/error"
 require "steroids/base/hash"
@@ -7,11 +12,6 @@ require "steroids/base/list"
 require "steroids/base/model"
 require "steroids/base/service"
 require "steroids/base/type"
-
-require "steroids/concerns/controller"
-require "steroids/concerns/error"
-require "steroids/concerns/model"
-require "steroids/concerns/serializer"
 
 require "steroids/errors/bad_request_error"
 require "steroids/errors/conflict_error"
@@ -21,7 +21,8 @@ require "steroids/errors/internal_server_error"
 require "steroids/errors/not_found_error"
 require "steroids/errors/not_implemented_error"
 require "steroids/errors/unauthorized_error"
-require "steroids/errors/unprocessable_error"
+require "steroids/errors/unprocessable_entity_error"
+
 
 module Steroids
 end
