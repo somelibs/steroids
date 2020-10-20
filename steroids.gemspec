@@ -7,5 +7,5 @@ Gem::Specification.new do | spec |
   spec.authors     = ["Paul Reboh"]
   spec.email       = 'dev@bernstein.io'
   spec.homepage    = 'https://github.com/bernstein-io/steroids'
-  spec.files       = `git ls-files`.split("\n")
+  spec.files       = `git ls-files lib`.split("\n")
 end
