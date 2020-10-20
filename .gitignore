@@ -1,0 +1,45 @@
+###################
+#       Ruby      #
+###################
+
+Procfile.local
+.bundle
+dump.rdb
+.env.local
+.gem
+
+###################
+#       Node      #
+###################
+
+node_modules
+
+###################
+#    Logs & Tmp   #
+###################
+
+tmp/*
+log/*
+*.log
+doc/*
+
+###################
+#      OS/IDE     #
+###################
+
+Desktop.ini
+.DS_Store
+.idea
+
+config/settings.local.yml
+config/settings/*.local.yml
+config/environments/*.local.yml
+config/google/*
+!config/google/.keep
+
+###################
+#      VIM        #
+###################
+*.sw*
+*tags
+
