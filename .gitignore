@@ -6,7 +6,7 @@ Procfile.local
 .bundle
 dump.rdb
 .env.local
-.gem
+*.gem
 
 ###################
 #       Node      #

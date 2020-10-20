@@ -1,5 +1,5 @@
 Gem::Specification.new do | spec |
-  spec.name        = 'Steroids'
+  spec.name        = 'steroids'
   spec.version     = '1.0.0'
   spec.date        = '2020-10-20'
   spec.summary     = "Steroids - Rails helpers"
