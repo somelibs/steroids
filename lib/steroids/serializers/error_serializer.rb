@@ -6,18 +6,24 @@ module Steroids
       attribute :status
       attribute :message
       attribute :proverb
-      attribute :reference
-      attribute :data
+      attribute :context
       attribute :errors
       attribute :timestamp
-      attribute :exception, if: -> { Rails.env.development? }
+
+      attributes :exception,
+                 :true_message,
+                 if: -> { Rails.env.development? }
 
       def exception
         @object.klass&.to_s&.demodulize
       end
 
+      def true_message
+        @object.true_message || false
+      end
+
       def timestamp
-        DateTime.now.to_s
+        @object.timestamp
       end
     end
   end

@@ -9,20 +9,22 @@ module Steroids
       attr_reader :code
       attr_reader :status
       attr_reader :message
-      attr_reader :reference
-      attr_reader :data
+      attr_reader :context
       attr_reader :errors
       attr_reader :key
       attr_reader :proverb
       attr_reader :klass
+      attr_reader :true_message
+      attr_reader :timestamp
 
-      def initialize(status: false, message: false, key: nil, errors: nil, data: nil, reference: nil, exception: nil)
+      def initialize(status: false, message: false, key: nil, errors: nil, context: nil, reference: nil, exception: nil)
+        @timestamp = DateTime.now.to_s
         @id = SecureRandom.uuid
         @key = assert_key(key)
-        @data = assert_data(data)
-        @reference = assert_reference(reference)
+        @context = assert_context(context)
         @status = assert_status(exception, status)
         @message = assert_message(exception, message)
+        @true_message = assert_true_message(exception)
         @errors = assert_errors(exception, errors)
         @klass = assert_class(exception)
         @code = assert_code
@@ -33,14 +35,23 @@ module Steroids
       protected
 
       def status_from_error(error)
+        # Improvement needed
+        # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
         case error
+          when ActiveRecord::StaleObjectError then return :conflict
           when ActiveRecord::RecordNotFound then return :not_found
-          when ActionController::RoutingError then return :not_found
           when ActiveRecord::ActiveRecordError then return :bad_request
           when ActiveRecord::RecordInvalid then return :bad_request
-          when ActiveModel::ValidationError then return :bad_request
+          when ActionController::RoutingError then return :not_found
+          when ActionController::ParameterMissing then return :bad_request
+          when ActionController::UnknownFormat then return :not_acceptable
+          when ActionController::NotImplemented then return :not_implemented
+          when ActionController::UnknownHttpMethod then return :method_not_allowed
+          when ActionController::MethodNotAllowed then return :method_not_allowed
+          when ActionController::InvalidAuthenticityToken then return :unprocessable_entity
           when ActionDispatch::Http::Parameters::ParseError then return :unprocessable_entity
-          when ActiveRecord::ActiveRecordError then return :internal_server_error
+          when ActiveRecord::RecordNotSaved then return :unprocessable_entity
+          when ActiveModel::ValidationError then return :bad_request
           else return :internal_server_error
         end
       end
@@ -73,12 +84,8 @@ module Steroids
         @status ? @status.to_s : 'error'
       end
 
-      def assert_data(data)
-        data
-      end
-
-      def assert_reference(reference)
-        reference ? reference.to_s : 'http_error'
+      def assert_context(context)
+        context
       end
 
       def assert_key(key)
@@ -86,18 +93,19 @@ module Steroids
       end
 
       def assert_errors(exception, errors = [])
-        exception_message = reflect_on_exception(exception, :message)
-        exception_errors = reflect_on_exception(exception, :errors) || []
-        if exception_message != @message
-          exception_errors = Array(exception_errors)
-          (Array(errors) + exception_errors + [exception_message]).compact
-        else
-          (Array(errors) + exception_errors).compact
-        end
+        exception_errors = reflect_on(exception, :errors) || []
+        active_model = reflect_on(exception, :model) || reflect_on(exception, :record)
+        validations_errors = reflect_on(active_model, :errors)&.to_a || []
+        (Array(errors) + exception_errors + validations_errors).compact
+      end
+
+      def assert_true_message(exception)
+        true_msg = reflect_on(exception, :true_message) || reflect_on(exception, :message)
+        true_msg != @message ? true_msg : nil
       end
 
       def assert_message(exception, message)
-        exception_message = reflect_on_exception(exception, :message)
+        exception_message = reflect_on(exception, :message)
         if exception_message && (exception.is_a?(Steroids::Base::Error) ||
                                   self.instance_of?(Steroids::Base::Error))
           exception_message
@@ -108,8 +116,10 @@ module Steroids
         end
       end
 
-      def reflect_on_exception(exception, attribute)
-        exception&.respond_to?(attribute) ? exception.message : nil
+      def reflect_on(instance, attribute)
+        instance&.respond_to?(attribute) ?
+          (instance.public_send(attribute) || instance.read_attribute(attribute))
+          : nil
       end
     end
   end
