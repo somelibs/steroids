@@ -3,7 +3,7 @@ module Steroids
     class Error < StandardError
       include ActiveModel::Serialization
 
-      @@DEFAULT_MESSAGE = 'An error has occurred while processing your request [Steroids::Base::Error]'
+      @@DEFAULT_MESSAGE = 'Oops, something went wrong'
 
       attr_reader :id
       attr_reader :code
@@ -16,26 +16,40 @@ module Steroids
       attr_reader :proverb
       attr_reader :klass
 
-      def initialize(status: false, message:, key: nil, errors: nil, data: nil, reference: nil, exception: nil)
+      def initialize(status: false, message: false, key: nil, errors: nil, data: nil, reference: nil, exception: nil)
         @id = SecureRandom.uuid
         @key = assert_key(key)
         @data = assert_data(data)
-        @code = assert_code(status)
-        @status = assert_status(status)
         @reference = assert_reference(reference)
+        @status = assert_status(exception, status)
         @message = assert_message(exception, message)
         @errors = assert_errors(exception, errors)
         @klass = assert_class(exception)
+        @code = assert_code
         @proverb = proverb
         super(@message)
       end
 
       protected
 
+      def status_from_error(error)
+        case error
+          when ActiveRecord::RecordNotFound then return :not_found
+          when ActionController::RoutingError then return :not_found
+          when ActiveRecord::ActiveRecordError then return :bad_request
+          when ActiveRecord::RecordInvalid then return :bad_request
+          when ActiveModel::ValidationError then return :bad_request
+          when ActionDispatch::Http::Parameters::ParseError then return :unprocessable_entity
+          when ActiveRecord::ActiveRecordError then return :internal_server_error
+          else return :internal_server_error
+        end
+      end
+
       def proverb
         begin
-          proverbs = Rails.cache.fetch('core/error_proverbs', expires_in: 1.hour) do
-            YAML.load_file(Rails.root.join('config/proverbs.yml'))
+          path = File.join(Steroids.path, 'misc/proverbs.yml')
+          proverbs = Rails.cache.fetch('steroids/proverbs') do
+            YAML.load_file(path)
           end
         rescue StandardError => e
           Rails.logger.error(e)
@@ -50,12 +64,13 @@ module Steroids
         exception&.class
       end
 
-      def assert_status(status)
-        status ? Rack::Utils.status_code(status) : false
+      def assert_status(exception, status)
+        status_code = status || status_from_error(exception)
+        Rack::Utils.status_code(status_code)
       end
 
-      def assert_code(status)
-        status ? status.to_s : 'error'
+      def assert_code
+        @status ? @status.to_s : 'error'
       end
 
       def assert_data(data)
@@ -76,7 +91,15 @@ module Steroids
       end
 
       def assert_message(exception, message)
-        message && message.to_s || @@DEFAULT_MESSAGE
+        exception_message = reflect_on_exception(exception, :message)
+        if exception_message && (exception.is_a?(Steroids::Base::Error) ||
+                                  self.instance_of?(Steroids::Base::Error))
+          exception_message
+        elsif message
+          message.to_s
+        else
+          @@DEFAULT_MESSAGE
+        end
       end
 
       def reflect_on_exception(exception, attribute)

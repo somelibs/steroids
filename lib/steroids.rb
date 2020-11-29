@@ -30,4 +30,7 @@ require "steroids/errors/unprocessable_entity_error"
 require "steroids/serializers/error_serializer"
 
 module Steroids
+  def self.path
+    File.dirname __dir__
+  end
 end

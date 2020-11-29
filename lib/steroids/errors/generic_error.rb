@@ -4,8 +4,7 @@ module Steroids
       def initialize(options = {})
         super(
           {
-            message: options[:message] || "Something went wrong (Generic error)",
-            status: options[:status] ? Rack::Utils.status_code(status) : false
+            message: options[:message] || "Oops, something went wrong",
           }.merge(options)
         )
       end
