@@ -86,8 +86,14 @@ module Steroids
       end
 
       def assert_errors(exception, errors = [])
-        exception_errors = Array(reflect_on_exception(exception, :message))
-        (Array(errors) + exception_errors).compact
+        exception_message = reflect_on_exception(exception, :message)
+        exception_errors = reflect_on_exception(exception, :errors) || []
+        if exception_message != @message
+          exception_errors = Array(exception_errors)
+          (Array(errors) + exception_errors + [exception_message]).compact
+        else
+          (Array(errors) + exception_errors).compact
+        end
       end
 
       def assert_message(exception, message)
