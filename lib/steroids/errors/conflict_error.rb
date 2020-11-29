@@ -2,7 +2,7 @@ module Steroids
   module Errors
     class ConflictError < Steroids::Base::Error
       def initialize(options = {})
-        options[:message] ||= "Something went wrong (Internal conflict)"
+        options[:message] ||= "Internal conflict"
         super(
           {
             status: :conflict,

@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         super(
           {
-            message: options[:message] || "Oops, something went wrong",
+            message: options[:message] || "Something went wrong",
           }.merge(options)
         )
       end

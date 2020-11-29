@@ -94,3 +94,4 @@
 - "Fatal exception 0E has occurred at 0028:C02B9568 in VXD IFSMGR(04) + 00012AEC 273918 (running the Sysinternal Filemon.exe program during Win Me Setup.)"
 - "NoMethodError (undefined method 'some_method' for nil:NilClass)"
 - "When you send information to the Internet, it might be possible for others to see that information. Do you want to continue?"
+- "Are you sure engineering is right for you? I heard the sales departement was looking for someone."

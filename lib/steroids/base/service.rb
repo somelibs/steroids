@@ -45,7 +45,6 @@ module Steroids
         run_after_callbacks unless @skip_callbacks
         if errors? && !@force
           raise Steroids::Errors::GenericError.new(
-            message: 'Oops, something went wrong',
             errors: errors
           )
         end

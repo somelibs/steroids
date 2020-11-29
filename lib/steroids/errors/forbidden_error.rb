@@ -2,7 +2,7 @@ module Steroids
   module Errors
     class ForbiddenError < Steroids::Base::Error
       def initialize(options = {})
-        options[:message] ||= "Your request was denied (Forbidden)"
+        options[:message] ||= "Forbidden"
         super(
           {
             status: :forbidden,

@@ -3,7 +3,7 @@ module Steroids
     class Error < StandardError
       include ActiveModel::Serialization
 
-      @@DEFAULT_MESSAGE = 'Oops, something went wrong'
+      @@DEFAULT_MESSAGE = 'Something went wrong'
 
       attr_reader :id
       attr_reader :code
@@ -117,9 +117,7 @@ module Steroids
       end
 
       def reflect_on(instance, attribute)
-        instance&.respond_to?(attribute) ?
-          (instance.public_send(attribute) || instance.read_attribute(attribute))
-          : nil
+        instance&.respond_to?(attribute) ? instance.public_send(attribute) : nil
       end
     end
   end
