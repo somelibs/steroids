@@ -17,7 +17,7 @@ module Steroids
       attr_reader :true_message
       attr_reader :timestamp
 
-      def initialize(status: false, message: false, key: nil, errors: nil, context: nil, reference: nil, exception: nil)
+      def initialize(status: false, message: false, key: nil, errors: nil, context: nil, reference: nil, code: nil, exception: nil)
         @timestamp = DateTime.now.to_s
         @id = SecureRandom.uuid
         @key = assert_key(key)
@@ -27,7 +27,7 @@ module Steroids
         @true_message = assert_true_message(exception)
         @errors = assert_errors(exception, errors)
         @klass = assert_class(exception)
-        @code = assert_code
+        @code = assert_code(code)
         @proverb = proverb
         super(@message)
       end
@@ -35,6 +35,9 @@ module Steroids
       protected
 
       def status_from_error(error)
+        own_status = reflect_on(error, :status)
+        return own_status if own_status
+
         # Improvement needed
         # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
         case error
@@ -80,8 +83,8 @@ module Steroids
         Rack::Utils.status_code(status_code)
       end
 
-      def assert_code
-        @status ? @status.to_s : 'error'
+      def assert_code(code)
+        code || @status ? @status.to_s : 'unknown_error'
       end
 
       def assert_context(context)
