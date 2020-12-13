@@ -32,6 +32,10 @@ module Steroids
         super(@message)
       end
 
+      def to_json
+        Steroids::Serializers::ErrorSerializer.new(self).to_json
+      end
+
       protected
 
       def status_from_error(error)
