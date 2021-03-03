@@ -5,7 +5,7 @@ require "steroids/version"
 Gem::Specification.new do | spec |
   spec.name        = 'steroids'
   spec.version     = Steroids::VERSION
-  spec.date        = '2020-11-26'
+  spec.date        = '2021-03-04'
   spec.summary     = "Steroids - Rails helpers"
   spec.description = "Steroids provides helper for Service-oriented, API based, Rails apps."
   spec.authors     = ["Paul Reboh"]
