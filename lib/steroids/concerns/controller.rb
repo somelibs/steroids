@@ -3,10 +3,6 @@ module Steroids
     module Controller
       extend ActiveSupport::Concern
       included do
-        before_action do
-          context.add(params: params)
-        end
-
         protected
 
         def respond_with(data, options = {})
@@ -62,9 +58,20 @@ module Steroids
 
         class << self
           attr_accessor :serializer
+          attr_accessor :services
 
           def default_serializer(serializer)
             @serializer = serializer
+          end
+
+          def service(service_name, class_name:)
+            define_method service_name do | options, *args |
+              options_hash = options.to_h
+              service_options = @context.merge(options_hash)
+              service_class = Object.const_get(class_name)
+              service_instance = service_class.new(service_options, *args)
+              service_instance.call
+            end
           end
         end
       end

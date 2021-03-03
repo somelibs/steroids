@@ -6,11 +6,13 @@ module Steroids
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
-      def call(options = {})
+      def call(options = {}, *args)
         @output = nil
         @force = options[:force] ||= false
         @skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
-        @@wrap_in_transaction ? ActiveRecord::Base.transaction { process_service } : process_service
+        @@wrap_in_transaction ?
+          ActiveRecord::Base.transaction { process_service(options, *args) }
+          : process_service(options, *args)
         ensure!
         @output
       rescue StandardError => e
@@ -25,24 +27,22 @@ module Steroids
 
       protected
 
-      def process
-        true
-      end
+      def process; end
 
-      def ensure!
-        true
-      end
+      def ensure!; end
 
-      def rescue!(_exception)
-        false
-      end
+      def before_process(*args); end
+
+      def after_process(*args); end
+
+      def rescue!(_exception); end
 
       private
 
-      def process_service
-        run_before_callbacks unless @skip_callbacks
+      def process_service(options, *args)
+        run_before_callbacks(options, *args) unless @skip_callbacks
         @output = process
-        run_after_callbacks unless @skip_callbacks
+        run_after_callbacks(@output) unless @skip_callbacks
         if errors? && !@force
           raise Steroids::Errors::GenericError.new(
             errors: errors
@@ -68,18 +68,20 @@ module Steroids
         end
       end
 
-      def run_before_callbacks
+      def run_before_callbacks(options = {}, *args)
+        before_process(options, *args)
         if self.class.before_callbacks.is_a?(Array)
           self.class.before_callbacks.each do |callback|
-            send(callback)
+            send(callback, options, *args)
           end
         end
       end
 
-      def run_after_callbacks
+      def run_after_callbacks(output)
+        after_process(output)
         if self.class.after_callbacks.is_a?(Array)
           self.class.after_callbacks.each do |callback|
-            send(callback)
+            send(callback, output)
           end
         end
       end
