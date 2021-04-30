@@ -65,9 +65,9 @@ module Steroids
           end
 
           def service(service_name, class_name:)
-            define_method service_name do | options, *args |
+            define_method service_name do | options=nil, *args |
               options_hash = options.to_h
-              service_options = @context.merge(options_hash)
+              service_options = @context ? @context.merge(options_hash) : {}
               service_class = Object.const_get(class_name)
               service_instance = service_class.new(service_options, *args)
               service_instance.call

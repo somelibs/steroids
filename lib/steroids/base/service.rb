@@ -68,17 +68,17 @@ module Steroids
         end
       end
 
-      def run_before_callbacks(options = {}, *args)
-        before_process(options, *args)
+      def run_before_callbacks(*args)
         if self.class.before_callbacks.is_a?(Array)
           self.class.before_callbacks.each do |callback|
-            send(callback, options, *args)
+            send(callback, *args)
           end
         end
+        method(:before_process).parameters.any? ? before_process(*args) : before_process
       end
 
       def run_after_callbacks(output)
-        after_process(output)
+        method(:after_process).parameters.any? ? after_process(output) : after_process
         if self.class.after_callbacks.is_a?(Array)
           self.class.after_callbacks.each do |callback|
             send(callback, output)
