@@ -49,7 +49,7 @@ module Steroids
           status = options[:status]
           if data
             options = options.merge({ json: data })
-            options = options.merge(@context)
+            options = options.merge(@context || {})
             render(options)
           else
             status ? head(status) : raise(Steroids::Errors::NotFoundError)
