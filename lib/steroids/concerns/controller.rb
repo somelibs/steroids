@@ -16,6 +16,10 @@ module Steroids
           @context ||= Steroids::Base::Hash.new
         end
 
+        def render(*args)
+          super(*args)
+        end
+
         private
 
         def __parse_options(data, options)
