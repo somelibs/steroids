@@ -1,3 +1,14 @@
+GIT
+  remote: https://github.com/rails-api/active_model_serializers.git
+  revision: fae99ee08ab3292086b3d15c99d297a3ba384b0f
+  branch: 0-10-stable
+  specs:
+    active_model_serializers (0.10.12)
+      actionpack (>= 4.1, < 7.1)
+      activemodel (>= 4.1, < 7.1)
+      case_transform (>= 0.2)
+      jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
+
 PATH
   remote: .
   specs:
@@ -67,6 +78,8 @@ GEM
       minitest (>= 5.1)
       tzinfo (~> 2.0)
     builder (3.2.4)
+    case_transform (0.2)
+      activesupport
     concurrent-ruby (1.1.9)
     crass (1.0.6)
     erubi (1.10.0)
@@ -74,6 +87,7 @@ GEM
       activesupport (>= 5.0)
     i18n (1.8.11)
       concurrent-ruby (~> 1.0)
+    jsonapi-renderer (0.2.2)
     loofah (2.13.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
@@ -132,6 +146,7 @@ PLATFORMS
   x86_64-darwin-20
 
 DEPENDENCIES
+  active_model_serializers!
   rails (~> 7.0)
   sqlite3
   steroids!
