@@ -12,7 +12,7 @@ module Steroids
       attr_reader :context
       attr_reader :errors
       attr_reader :key
-      attr_reader :proverb
+      attr_reader :quote
       attr_reader :klass
       attr_reader :true_message
       attr_reader :timestamp
@@ -28,7 +28,7 @@ module Steroids
         @errors = assert_errors(exception, errors)
         @klass = assert_class(exception)
         @code = assert_code(code)
-        @proverb = proverb
+        @quote = quote
         super(@message)
       end
 
@@ -63,17 +63,17 @@ module Steroids
         end
       end
 
-      def proverb
+      def quote
         begin
-          path = File.join(Steroids.path, 'misc/proverbs.yml')
-          proverbs = Rails.cache.fetch('steroids/proverbs') do
+          path = File.join(Steroids.path, 'misc/quotes.yml')
+          quotes = Rails.cache.fetch('steroids/quotes') do
             YAML.load_file(path)
           end
         rescue StandardError => e
           Rails.logger.error(e)
-          proverbs = ['One little bug...']
+          quotes = ['One little bug...']
         end
-        proverbs.sample
+        quotes.sample
       end
 
       private
