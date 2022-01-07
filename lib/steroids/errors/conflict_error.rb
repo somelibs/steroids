@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         options[:message] ||= "Internal conflict"
         super(
-          {
+          **{
             status: :conflict,
             key: :conflict
           }.merge(options)

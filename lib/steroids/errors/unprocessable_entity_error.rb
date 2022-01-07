@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         options[:message] ||= "We couldn't understand your request (Unprocessable entity)"
         super(
-          {
+          **{
             status: :unprocessable_entity,
             key: :unprocessable_entity
           }.merge(options)

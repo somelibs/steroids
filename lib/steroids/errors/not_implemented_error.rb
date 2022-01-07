@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         options[:message] ||= "This feature hasn't been implemented yet"
         super(
-          {
+          **{
             status: :not_implemented,
             key: :not_implemented
           }.merge(options)

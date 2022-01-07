@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         options[:message] ||= 'Bad request'
         super(
-          {
+          **{
             status: :bad_request,
             key: :bad_request
           }.merge(options)

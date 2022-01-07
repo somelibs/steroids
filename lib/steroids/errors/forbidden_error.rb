@@ -4,7 +4,7 @@ module Steroids
       def initialize(options = {})
         options[:message] ||= "Forbidden"
         super(
-          {
+          **{
             status: :forbidden,
             key: :forbidden
           }.merge(options)
