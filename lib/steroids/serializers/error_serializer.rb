@@ -5,7 +5,7 @@ module Steroids
       attribute :code
       attribute :status
       attribute :message
-      attribute :proverb
+      attribute :quote
       attribute :context
       attribute :errors
       attribute :timestamp

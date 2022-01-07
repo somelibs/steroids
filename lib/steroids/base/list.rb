@@ -43,7 +43,7 @@ module Steroids
         elsif object.is_a?(String)
           formatted = [object]
         end
-        formatted.each { |item| Rais.logger.info(item) }
+        formatted.each { |item| Rails.logger.info(item) }
         @errors.concat(formatted)
       end
     end
