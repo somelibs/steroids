@@ -6,18 +6,21 @@ module Steroids
         protected
 
         def respond_with(data, options = {})
-          options = __parse_options(data, options)
-          data = __apply_scopes(data, options)
-          data = __apply_pagination(data, options)
-          return __response(data, options)
+          respond_to do | format |
+            format.json {
+              options = __parse_options(data, options)
+              data = __apply_scopes(data, options)
+              data = __apply_pagination(data, options)
+              return __response(data, options)
+            }
+            format.any {
+              return defined?(super) ? super(data) : data
+            }
+          end
         end
 
         def context
           @context ||= Steroids::Base::Hash.new
-        end
-
-        def render(*args)
-          super(*args)
         end
 
         private
