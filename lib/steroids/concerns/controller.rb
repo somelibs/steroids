@@ -5,7 +5,7 @@ module Steroids
       included do
         protected
 
-        def respond_with(data, options = {})
+        def respond_with(data, options = {}, *args)
           respond_to do | format |
             format.json {
               options = __parse_options(data, options)
@@ -14,7 +14,7 @@ module Steroids
               return __response(data, options)
             }
             format.any {
-              return defined?(super) ? super(data) : data
+              return defined?(super) ? super(data, options, *args) : data
             }
           end
         end
