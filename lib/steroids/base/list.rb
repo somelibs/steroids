@@ -10,11 +10,11 @@ module Steroids
       end
 
       def add(object = [])
-        add_error(object)
+        format_error(object)
       end
 
       def <<(object = [])
-        add_error(object)
+        format_error(object)
       end
 
       def to_ary
@@ -35,13 +35,17 @@ module Steroids
 
       private
 
-      def add_error(object = [])
+      def format_error(object = [])
         if object.is_a? ActiveModel::Errors
           formatted = object.to_a.map { |item| item.gsub(/"/, '\'') }
         elsif object.is_a?(Array)
           formatted = object
         elsif object.is_a?(String)
           formatted = [object]
+        elsif object.is_a? Exception
+          formatted = [object.message]
+        else
+          formatted = []
         end
         formatted.each { |item| Rails.logger.info(item) }
         @errors.concat(formatted)
