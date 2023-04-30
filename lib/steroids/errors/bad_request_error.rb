@@ -1,13 +1,12 @@
 module Steroids
   module Errors
     class BadRequestError < Steroids::Base::Error
+      default_message "Request failed (Bad request)."
+
       def initialize(options = {})
-        options[:message] ||= 'Bad request'
         super(
-          **{
-            status: :bad_request,
-            key: :bad_request
-          }.merge(options)
+          **options,
+          status: :bad_request
         )
       end
     end

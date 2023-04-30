@@ -65,7 +65,6 @@ module Steroids
 
       def drop(message: nil)
         unless @force
-          puts '-------------- DROP', message.inspect, errors.inspect
           raise Steroids::Errors::BadRequestError.new(
             message: message,
             errors: errors,

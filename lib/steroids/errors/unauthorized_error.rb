@@ -1,13 +1,12 @@
 module Steroids
   module Errors
     class UnauthorizedError < Steroids::Base::Error
+      default_message "You shall not pass! (Unauthorized)"
+
       def initialize(options = {})
-        options[:message] ||= 'You shall not pass! (Unauthorized)'
         super(
-          **{
-            status: :unauthorized,
-            key: :unauthorized
-          }.merge(options)
+          **options,
+          status: :unauthorized
         )
       end
     end

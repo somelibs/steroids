@@ -22,11 +22,11 @@ module Steroids
       end
 
       def message
-        if Rails.env.development? && @object.respond_to?(:cause) && @object.cause.present?
-          @object.cause.message
-        else
-          @object.message
-        end
+        [
+          @object.message,
+          Rails.env.development? && @object.respond_to?(:cause) && @object.cause.present? ?
+            @object.cause : nil
+        ].compact.join(" - Cause by: ")
       end
 
       def timestamp

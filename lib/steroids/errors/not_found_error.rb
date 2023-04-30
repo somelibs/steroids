@@ -1,13 +1,12 @@
 module Steroids
   module Errors
     class NotFoundError < Steroids::Base::Error
+      default_message "We couldn't find what you were looking for (Not found)"
+
       def initialize(options = {})
         super(
-          **{
-            message: options[:message] || "We couldn't find what you were looking for",
-            status: :not_found,
-            key: :not_found
-          }.merge(options)
+          **options,
+          status: :not_found
         )
       end
     end

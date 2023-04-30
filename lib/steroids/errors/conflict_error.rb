@@ -1,13 +1,12 @@
 module Steroids
   module Errors
     class ConflictError < Steroids::Base::Error
+      default_message "Already exists (Internal conflict)"
+
       def initialize(options = {})
-        options[:message] ||= "Internal conflict"
         super(
-          **{
-            status: :conflict,
-            key: :conflict
-          }.merge(options)
+          **options,
+          status: :conflict
         )
       end
     end

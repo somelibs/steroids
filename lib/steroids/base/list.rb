@@ -47,7 +47,6 @@ module Steroids
         else
           formatted = []
         end
-        formatted.each { |item| Rails.logger.info(item) }
         @errors.concat(formatted)
       end
     end

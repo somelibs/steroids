@@ -1,11 +1,12 @@
 module Steroids
   module Errors
     class GenericError < Steroids::Base::Error
+      default_message "Steroids error (Generic)"
+
       def initialize(options = {})
         super(
-          **{
-            message: options[:message] || "Something went wrong",
-          }.merge(options)
+          **options,
+          message: options[:message]
         )
       end
     end

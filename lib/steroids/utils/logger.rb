@@ -38,17 +38,52 @@ module Steroids
           end
         end
 
+        def format_timestamp(input)
+          if input.respond_to?(:timestamp) && input.timestamp.is_a?(DateTime)
+            "(at #{input.timestamp.to_time.to_s})"
+          end
+        end
+
+        def format_message(input)
+          [
+            "\n#{input.class.to_s} -- #{input.message.to_s.upcase_first}",
+            input.respond_to?(:id) && "[ID: #{input.id.to_s}]",
+            format_timestamp(input),
+          ].compact_blank.join(" ")
+        end
+
+        def format_cause(input)
+          "↳ Cause: #{input.cause.class.name} (#{input.cause_message.to_s})"
+        end
+
+        def format_backtrace(input)
+          app_path = Rails.root.to_s
+          "\t" + input.backtrace.map do |path|
+            path.to_s.delete_prefix(app_path)
+          end.join("\n\t")
+        end
+
+        def format_errors(input)
+          input.errors.map do |error|
+            "[#{input.reccord}]: #{error}"
+          end.join("\n  ↳")
+        end
+
         def format_input(input)
           if input.is_a?(Exception)
-            app_path = Rails.root.to_s
-            output = input.class.to_s + ": " + input.message.to_s.upcase_first
-            output += "\n\t" + input.backtrace.map {
-                |path| path.to_s.delete_prefix(app_path)
-              }.join("\n\t") if input.backtrace.present?
-            output
+            [
+              format_message(input),
+              assert_presence(input, :cause) && format_cause(input),
+              assert_presence(input, :errors) && format_errors(input),
+              assert_presence(input, :backtrace) && format_backtrace(input)
+            ].compact_blank.join("\n")
           else
             input
           end
+        end
+
+        def assert_presence(instance, key)
+          instance.respond_to?(key) && instance.public_send(key)
         end
       end
     end

@@ -3,14 +3,16 @@ module Steroids
     class Error < StandardError
       include ActiveModel::Serialization
 
-      @@DEFAULT_MESSAGE = 'Something went wrong'
+      @@DEFAULT_MESSAGE = 'Oops, something went wrong (Unknown error)'
 
       attr_reader :id
+      attr_reader :message
+      attr_reader :cause
       attr_reader :code
       attr_reader :status
       attr_reader :errors
-      attr_reader :key
       attr_reader :quote
+      attr_reader :record
       attr_reader :timestamp
       attr_reader :logged
 
@@ -23,16 +25,18 @@ module Steroids
         log: false,
         **splat
       )
-        set_backtrace(cause&.backtrace || backtrace_locations)
-        @timestamp = DateTime.now.to_s
+        super(**splat, message: message, cause: cause)
+        set_backtrace(cause&.backtrace || backtrace_locations || caller)
+        @timestamp = DateTime.now
         @id = SecureRandom.uuid
-        @status = assert_status(cause, status)
         @message = assert_message(cause, message)
         @errors = assert_errors(cause, errors)
+        @status = assert_status(cause, status)
         @code = assert_code(code)
+        @record = assert_record(cause)
         @quote = quote
+        @cause = cause
         self.log! if log
-        super(**splat, message: @message, cause: cause)
       end
 
       def to_json
@@ -44,32 +48,13 @@ module Steroids
         @logged = true
       end
 
-      protected
-
-      def status_from_error(error)
-        own_status = reflect_on(error, :status)
-        return own_status if own_status
-
-        # Improvement needed
-        # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
-        case error
-          when ActiveRecord::StaleObjectError then return :conflict
-          when ActiveRecord::RecordNotFound then return :not_found
-          when ActiveRecord::ActiveRecordError then return :bad_request
-          when ActiveRecord::RecordInvalid then return :bad_request
-          when ActionController::RoutingError then return :not_found
-          when ActionController::ParameterMissing then return :bad_request
-          when ActionController::UnknownFormat then return :not_acceptable
-          when ActionController::NotImplemented then return :not_implemented
-          when ActionController::UnknownHttpMethod then return :method_not_allowed
-          when ActionController::MethodNotAllowed then return :method_not_allowed
-          when ActionController::InvalidAuthenticityToken then return :unprocessable_entity
-          when ActionDispatch::Http::Parameters::ParseError then return :unprocessable_entity
-          when ActiveRecord::RecordNotSaved then return :unprocessable_entity
-          when ActiveModel::ValidationError then return :bad_request
-          else return :internal_server_error
+      def cause_message
+        if cause
+          reflect_on(cause, :original_message) || reflect_on(cause, :message)
         end
       end
+
+      protected
 
       def quote
         begin
@@ -86,40 +71,59 @@ module Steroids
 
       private
 
+      def assert_message(cause, message)
+        message || @default_message || @@DEFAULT_MESSAGE
+      end
+
       def assert_status(cause, status)
-        status_code = status || status_from_error(cause)
-        Rack::Utils.status_code(status_code)
+        status || reflect_on(cause, :status) || assert_status_from_error(cause) || :unknown_error
       end
 
-      def assert_code(code)
-        code || @status ? @status.to_s : 'unknown_error'
+      def assert_status_from_error(cause)
+        error_class = cause ? cause.class : self.class
+        # Improvement needed
+        # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
+        case error_class
+          when ActiveRecord::StaleObjectError then return :conflict
+          when ActiveRecord::RecordNotFound then return :not_found
+          when ActiveRecord::ActiveRecordError then return :bad_request
+          when ActiveRecord::RecordInvalid then return :bad_request
+          when ActionController::RoutingError then return :not_found
+          when ActionController::ParameterMissing then return :bad_request
+          when ActionController::UnknownFormat then return :not_acceptable
+          when ActionController::NotImplemented then return :not_implemented
+          when ActionController::UnknownHttpMethod then return :method_not_allowed
+          when ActionController::MethodNotAllowed then return :method_not_allowed
+          when ActionController::InvalidAuthenticityToken then return :unprocessable_entity
+          when ActionDispatch::Http::Parameters::ParseError then return :unprocessable_entity
+          when ActiveRecord::RecordNotSaved then return :unprocessable_entity
+          when ActiveModel::ValidationError then return :bad_request
+        end
       end
 
-      def assert_key(key)
-        Array(key)
+      def assert_code(status)
+        status ? Rack::Utils.status_code(status) : 520
       end
 
       def assert_errors(cause, errors = [])
         cause_errors = reflect_on(cause, :errors) || []
-        active_model = reflect_on(cause, :model) || reflect_on(cause, :record)
-        validations_errors = reflect_on(active_model, :errors)&.to_a || []
+        active_record = reflect_on(cause, :record)
+        validations_errors = Array(reflect_on(active_record, :errors)) || []
         [Array(errors), cause_errors, validations_errors].flatten.compact.uniq
       end
 
-      def assert_message(cause, message)
-        cause_message = reflect_on(cause, :message)
-        if cause_message && (cause.is_a?(Steroids::Base::Error) ||
-                                  self.instance_of?(Steroids::Base::Error))
-          cause_message
-        elsif message
-          message.to_s
-        else
-          @@DEFAULT_MESSAGE
-        end
+      def assert_record(cause, errors = [])
+        reflect_on(cause, :record)
       end
 
-      def reflect_on(instance, attribute)
-        instance&.respond_to?(attribute) ? instance.public_send(attribute) : nil
+      def reflect_on(instance, key)
+        instance.respond_to?(key) ? instance.public_send(key) : nil
+      end
+
+      class << self
+        def default_message(message)
+          @default_message = message
+        end
       end
     end
   end
