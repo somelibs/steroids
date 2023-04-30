@@ -26,23 +26,21 @@ module Steroids
         context: nil,
         reference: nil,
         code: nil,
-        exception: nil,
+        cause: nil,
         log: false
       )
-        # exception should be renamed cause
         @timestamp = DateTime.now.to_s
         @id = SecureRandom.uuid
         @key = assert_key(key)
         @context = assert_context(context)
-        @status = assert_status(exception, status)
-        @message = assert_message(exception, message)
-        @true_message = assert_true_message(exception)
-        @errors = assert_errors(exception, errors)
-        @klass = assert_class(exception)
+        @status = assert_status(cause, status)
+        @message = assert_message(cause, message)
+        @errors = assert_errors(cause, errors)
+        @klass = assert_class(cause)
         @code = assert_code(code)
         @quote = quote
         self.log! if log
-        super(message: @message, cause: exception)
+        super(message: @message, cause: cause)
       end
 
       def to_json
@@ -96,12 +94,12 @@ module Steroids
 
       private
 
-      def assert_class(exception)
-        exception&.class
+      def assert_class(cause)
+        cause&.class
       end
 
-      def assert_status(exception, status)
-        status_code = status || status_from_error(exception)
+      def assert_status(cause, status)
+        status_code = status || status_from_error(cause)
         Rack::Utils.status_code(status_code)
       end
 
@@ -117,23 +115,18 @@ module Steroids
         Array(key)
       end
 
-      def assert_errors(exception, errors = [])
-        exception_errors = reflect_on(exception, :errors) || []
-        active_model = reflect_on(exception, :model) || reflect_on(exception, :record)
+      def assert_errors(cause, errors = [])
+        cause_errors = reflect_on(cause, :errors) || []
+        active_model = reflect_on(cause, :model) || reflect_on(cause, :record)
         validations_errors = reflect_on(active_model, :errors)&.to_a || []
         (Array(errors) + exception_errors + validations_errors).compact
       end
 
-      def assert_true_message(exception)
-        true_msg = reflect_on(exception, :true_message) || reflect_on(exception, :message)
-        true_msg != @message ? true_msg : nil
-      end
-
-      def assert_message(exception, message)
-        exception_message = reflect_on(exception, :message)
-        if exception_message && (exception.is_a?(Steroids::Base::Error) ||
+      def assert_message(cause, message)
+        cause_message = reflect_on(cause, :message)
+        if cause_message && (cause.is_a?(Steroids::Base::Error) ||
                                   self.instance_of?(Steroids::Base::Error))
-          exception_message
+          cause_message
         elsif message
           message.to_s
         else
