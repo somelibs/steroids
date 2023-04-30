@@ -1,6 +1,6 @@
 # Steroids
 
-Steroids provides helpers for Service-oriented, API based, Rails apps.
+Steroids provides a set of helpers for APIs and service-oriented Rails apps.
 
 ## Usage
 n/a
@@ -16,6 +16,21 @@ gem 'steroids', :git => "git@github.com:somelibs/steroids.git", :branch => "mast
 ```
   bundle config local.steroids /path/to/local/git/repository
 ```
+
+## Support
+
+Rails 7+
+
+## Disclaimer
+
+Under active development. We may not respect SemVer. Use at your own risks.
+
+## Todo
+
+* Standalone testing - in the Gem, with dummy app
+* Generate initializer file
+* Allow auto-reload in development through the initializer file?
+  e.g. see https://format-express.dev/blog/embed-a-gem-in-a-rails-project-and-enable-autoreload
 
 ## License
 

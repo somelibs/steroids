@@ -45,7 +45,8 @@ module Steroids
         run_after_callbacks(@output) unless @skip_callbacks
         if errors? && !@force
           raise Steroids::Errors::GenericError.new(
-            errors: errors
+            errors: errors,
+            log: true
           )
         end
       end
@@ -63,7 +64,8 @@ module Steroids
         unless @force
           raise Steroids::Errors::BadRequestError.new(
             message: message,
-            errors: errors
+            errors: errors,
+            log: true
           )
         end
       end
@@ -71,7 +73,7 @@ module Steroids
       def run_before_callbacks(*args)
         if self.class.before_callbacks.is_a?(Array)
           self.class.before_callbacks.each do |callback|
-            send(callback, *args)
+            method(callback).parameters.any? ? send(callback, *args) : send(callback)
           end
         end
         method(:before_process).parameters.any? ? before_process(*args) : before_process
@@ -81,7 +83,7 @@ module Steroids
         method(:after_process).parameters.any? ? after_process(output) : after_process
         if self.class.after_callbacks.is_a?(Array)
           self.class.after_callbacks.each do |callback|
-            send(callback, output)
+            method(callback).parameters.any? ? send(callback, output) : send(output)
           end
         end
       end

@@ -29,7 +29,8 @@ require "steroids/errors/unprocessable_entity_error"
 
 require "steroids/serializers/error_serializer"
 
-require "steroids/utils"
+require "steroids/utils/types"
+require "steroids/utils/logger"
 
 module Steroids
   def self.path

@@ -16,8 +16,20 @@ module Steroids
       attr_reader :klass
       attr_reader :true_message
       attr_reader :timestamp
+      attr_reader :logged
 
-      def initialize(status: false, message: false, key: nil, errors: nil, context: nil, reference: nil, code: nil, exception: nil)
+      def initialize(
+        status: false,
+        message: false,
+        key: nil,
+        errors: nil,
+        context: nil,
+        reference: nil,
+        code: nil,
+        exception: nil,
+        log: false
+      )
+        # exception should be renamed cause
         @timestamp = DateTime.now.to_s
         @id = SecureRandom.uuid
         @key = assert_key(key)
@@ -29,11 +41,17 @@ module Steroids
         @klass = assert_class(exception)
         @code = assert_code(code)
         @quote = quote
-        super(@message)
+        self.log! if log
+        super(message: @message, cause: exception)
       end
 
       def to_json
         Steroids::Serializers::ErrorSerializer.new(self).to_json
+      end
+
+      def log!
+        Steroids::Utils::Logger.print(self)
+        @logged = true
       end
 
       protected
