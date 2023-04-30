@@ -119,7 +119,7 @@ module Steroids
         cause_errors = reflect_on(cause, :errors) || []
         active_model = reflect_on(cause, :model) || reflect_on(cause, :record)
         validations_errors = reflect_on(active_model, :errors)&.to_a || []
-        (Array(errors) + exception_errors + validations_errors).compact
+        [Array(errors), cause_errors, validations_errors].flatten.compact.uniq
       end
 
       def assert_message(cause, message)
