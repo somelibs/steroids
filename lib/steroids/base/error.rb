@@ -8,39 +8,31 @@ module Steroids
       attr_reader :id
       attr_reader :code
       attr_reader :status
-      attr_reader :message
-      attr_reader :context
       attr_reader :errors
       attr_reader :key
       attr_reader :quote
-      attr_reader :klass
-      attr_reader :true_message
       attr_reader :timestamp
       attr_reader :logged
 
       def initialize(
         status: false,
         message: false,
-        key: nil,
         errors: nil,
-        context: nil,
-        reference: nil,
         code: nil,
         cause: nil,
-        log: false
+        log: false,
+        **splat
       )
+        set_backtrace(cause&.backtrace || backtrace_locations)
         @timestamp = DateTime.now.to_s
         @id = SecureRandom.uuid
-        @key = assert_key(key)
-        @context = assert_context(context)
         @status = assert_status(cause, status)
         @message = assert_message(cause, message)
         @errors = assert_errors(cause, errors)
-        @klass = assert_class(cause)
         @code = assert_code(code)
         @quote = quote
         self.log! if log
-        super(message: @message, cause: cause)
+        super(**splat, message: @message, cause: cause)
       end
 
       def to_json
@@ -94,10 +86,6 @@ module Steroids
 
       private
 
-      def assert_class(cause)
-        cause&.class
-      end
-
       def assert_status(cause, status)
         status_code = status || status_from_error(cause)
         Rack::Utils.status_code(status_code)
@@ -105,10 +93,6 @@ module Steroids
 
       def assert_code(code)
         code || @status ? @status.to_s : 'unknown_error'
-      end
-
-      def assert_context(context)
-        context
       end
 
       def assert_key(key)

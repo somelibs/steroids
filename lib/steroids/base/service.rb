@@ -15,14 +15,16 @@ module Steroids
           : process_service(options, *args)
         ensure!
         @output
-      rescue StandardError => e
+      rescue StandardError => error
         ActiveRecord::Rollback
         ensure!
-        rescue_output = rescue!(e)
-        raise e unless rescue_output
-
-        Rails.logger.error(e)
-        rescue_output
+        rescue_output = rescue!(error)
+        unless rescue_output
+          raise error
+        else
+          Steroids::Utils::Logger.print(error)
+          rescue_output
+        end
       end
 
       protected
@@ -55,13 +57,15 @@ module Steroids
         unless @force
           raise Steroids::Errors::InternalServerError.new(
             message: message,
-            errors: errors
+            errors: errors,
+            log: true
           )
         end
       end
 
       def drop(message: nil)
         unless @force
+          puts '-------------- DROP', message.inspect, errors.inspect
           raise Steroids::Errors::BadRequestError.new(
             message: message,
             errors: errors,

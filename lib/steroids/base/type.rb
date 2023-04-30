@@ -65,7 +65,7 @@ module Steroids
           instance
         rescue Exception => e
           raise Steroids::Errors::InternalServerError.new(
-            exception: e,
+            cause: e,
             message: 'Import failed'
           )
         end
