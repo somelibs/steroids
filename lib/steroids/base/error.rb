@@ -3,7 +3,7 @@ module Steroids
     class Error < StandardError
       include ActiveModel::Serialization
 
-      @@DEFAULT_MESSAGE = 'Oops, something went wrong (Unknown error)'
+      @@DEFAULT_MESSAGE = "Oops, something went wrong (Unknown error)"
 
       attr_reader :id
       attr_reader :message
@@ -58,13 +58,13 @@ module Steroids
 
       def quote
         begin
-          path = File.join(Steroids.path, 'misc/quotes.yml')
-          quotes = Rails.cache.fetch('steroids/quotes') do
+          path = File.join(Steroids.path, "misc/quotes.yml")
+          quotes = Rails.cache.fetch("steroids/quotes") do
             YAML.load_file(path)
           end
         rescue StandardError => e
           Rails.logger.error(e)
-          quotes = ['One little bug...']
+          quotes = ["One little bug..."]
         end
         quotes.sample
       end
