@@ -21,14 +21,14 @@ module Steroids
         private
 
         def assert_level(input)
-          if (input.is_a?(Steroids::Errors::InternalServerError) || input.is_a?(Steroids::Errors::GenericError))
+          return :info unless input.is_a?(Exception)
+
+          if input.is_a?(Steroids::Errors::InternalServerError) || input.is_a?(Steroids::Errors::GenericError)
             :error
           elsif input.is_a?(Steroids::Base::Error)
             :warn
-          elsif input.is_a?(Exception)
-            :error
           else
-            :info
+            :error
           end
         end
 
@@ -53,21 +53,24 @@ module Steroids
         end
 
         def format_cause(input)
-          "↳ Cause: #{input.cause.class.name} (#{input.cause_message.to_s})"
+          [
+            "↳ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
+            input.cause.respond_to?(:record) && input.cause.record && "[#{input.cause.record}]"
+          ].compact_blank.join(" ")
         end
 
         def format_backtrace(input)
           app_path = "#{Rails.root.to_s}/"
           "\n\t" + input.backtrace.map do |path|
             path.to_s.delete_prefix(app_path)
-          end.join("\n\t")
+          end.join("\n\t") if input.backtrace.any?
         end
 
         def format_errors(input)
           record = input.respond_to?(:record) && input.record ? input.record : "Error"
           "  ↳" + input.errors.map do |error|
             "[#{record}] #{error}"
-          end.join("\n  ↳")
+          end.join("\n  ↳") if input.errors.any?
         end
 
         def format_input(input)
