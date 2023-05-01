@@ -6,7 +6,7 @@ module Steroids
       class << self
         attr_accessor :notifier
 
-        def print(input = nil)
+        def print(input = nil, level: nil)
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
           else

@@ -36,7 +36,7 @@ module Steroids
         @record = assert_record(cause)
         @quote = quote
         @cause = cause
-        self.log! if log
+        log ? self.log! : self.quiet_log
       end
 
       def to_json
@@ -118,6 +118,13 @@ module Steroids
 
       def reflect_on(instance, key)
         instance.respond_to?(key) ? instance.public_send(key) : nil
+      end
+
+      def quiet_log
+        Steroids::Util::Logger.print(
+          "#{self.class.name}: #{self.class.message}",
+          level: :info
+        )
       end
 
       class << self
