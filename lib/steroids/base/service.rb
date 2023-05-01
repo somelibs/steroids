@@ -86,7 +86,7 @@ module Steroids
         method(:after_process).parameters.any? ? after_process(output) : after_process
         if self.class.after_callbacks.is_a?(Array)
           self.class.after_callbacks.each do |callback|
-            method(callback).parameters.any? ? send(callback, output) : send(output)
+            method(callback).parameters.any? ? send(callback, output) : send(callback)
           end
         end
       end
