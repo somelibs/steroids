@@ -46,7 +46,7 @@ module Steroids
 
         def format_message(input)
           [
-            "\n#{input.class.to_s} -- #{input.message.to_s.upcase_first}",
+            "\n➤ #{input.class.to_s} -- #{input.message.to_s.upcase_first}",
             input.respond_to?(:id) && "[ID: #{input.id.to_s}]",
             format_timestamp(input),
           ].compact_blank.join(" ")
