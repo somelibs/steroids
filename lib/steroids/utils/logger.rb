@@ -77,7 +77,7 @@ module Steroids
               assert_presence(input, :cause) && format_cause(input),
               assert_presence(input, :errors) && format_errors(input),
               assert_presence(input, :backtrace) && format_backtrace(input)
-            ].compact_blank.join("\n\n")
+            ].compact_blank.join("\n") + "\n"
           else
             input
           end
