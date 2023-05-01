@@ -55,7 +55,7 @@ module Steroids
         def format_cause(input)
           [
             "↳ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
-            input.cause.respond_to?(:record) && input.cause.record && "`#{input.cause.record.class.name}`"
+            input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"
           ].compact_blank.join(" ")
         end
 
@@ -68,9 +68,9 @@ module Steroids
 
         def format_errors(input)
           record = input.respond_to?(:record) && input.record ? input.record : "Error"
-          "  ↳" + input.errors.map do |error|
-            "`#{record.class.name}` #{error}"
-          end.join("\n  ↳") if input.errors.any?
+          "  ↳ " + input.errors.map do |error|
+            "#{record.class.name}: #{error}"
+          end.join("\n  ↳ ") if input.errors.any?
         end
 
         def format_input(input)
