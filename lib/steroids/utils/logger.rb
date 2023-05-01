@@ -57,7 +57,7 @@ module Steroids
         end
 
         def format_backtrace(input)
-          app_path = Rails.root.to_s
+          app_path = "#{Rails.root.to_s}/"
           "\n\t" + input.backtrace.map do |path|
             path.to_s.delete_prefix(app_path)
           end.join("\n\t")
