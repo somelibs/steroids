@@ -121,7 +121,7 @@ module Steroids
       end
 
       def quiet_log
-        Steroids::Util::Logger.print(
+        Steroids::Utils::Logger.print(
           "#{self.class.name}: #{self.class.message}",
           level: :info
         )
