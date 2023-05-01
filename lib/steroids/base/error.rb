@@ -25,6 +25,7 @@ module Steroids
         log: false,
         **splat
       )
+        @caller = caller
         super(**splat, message: message, cause: cause)
         set_backtrace(cause&.backtrace || backtrace_locations || caller)
         @timestamp = DateTime.now
@@ -123,7 +124,8 @@ module Steroids
       def quiet_log
         Steroids::Utils::Logger.print(
           "➤ #{self.class.name}: #{self.message} (quiet)",
-          level: :info
+          level: :info,
+          backtrace: :concise
         )
       end
 

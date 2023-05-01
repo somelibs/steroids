@@ -6,7 +6,8 @@ module Steroids
       class << self
         attr_accessor :notifier
 
-        def print(input = nil, level: nil)
+        def print(input = nil, level: nil, backtrace: nil)
+          assert_backtrace(input, backtrace)
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
           else
@@ -32,9 +33,28 @@ module Steroids
           end
         end
 
+        def assert_backtrace(input, verbosity)
+          @backtrace = input.is_a?(Exception) ? input.backtrace : caller
+          @backtrace_verbosity = begin
+            if verbosity == nil && input.is_a?(Exception)
+              :full
+            elsif [:full, :concise, :none].include?(verbosity)
+              verbosity
+            else
+              :none
+            end
+          end
+        end
+
         def notify(level, input)
           if @notifier.respond_to?(:call) && input.is_a?(Exception) && [:error, :warn].include?(level)
             @notifier.call(input)
+          end
+        end
+
+        def backtrace_origin
+          @backtrace.find do|line|
+            !line.include?(".bundle/gems/ruby") && !line.include?("steroids/lib/steroids")
           end
         end
 
@@ -52,6 +72,11 @@ module Steroids
           ].compact_blank.join(" ")
         end
 
+        def format_origin
+          app_path = "#{Rails.root.to_s}/"
+          "  ↳ #{backtrace_origin.to_s.delete_prefix(app_path)}"
+        end
+
         def format_cause(input)
           [
             "↳ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
@@ -61,9 +86,13 @@ module Steroids
 
         def format_backtrace(input)
           app_path = "#{Rails.root.to_s}/"
-          "\n\t" + input.backtrace.map do |path|
-            path.to_s.delete_prefix(app_path)
-          end.join("\n\t") if input.backtrace.any?
+          if @backtrace_verbosity == :full
+            "\n\t" + input.backtrace.map do |path|
+              path.to_s.delete_prefix(app_path)
+            end.join("\n\t") if input.backtrace.any?
+          elsif @backtrace_verbosity == :concise
+            format_origin
+          end
         end
 
         def format_errors(input)
@@ -77,12 +106,16 @@ module Steroids
           if input.is_a?(Exception)
             [
               format_message(input),
+              @backtrace_verbosity != :concise && format_origin,
               assert_presence(input, :cause) && format_cause(input),
               assert_presence(input, :errors) && format_errors(input),
-              assert_presence(input, :backtrace) && format_backtrace(input)
+              [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
           else
-            input
+            [
+              input,
+              [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
+            ].compact_blank.join("\n") + "\n"
           end
         end
 
