@@ -58,7 +58,7 @@ module Steroids
 
         def format_backtrace(input)
           app_path = Rails.root.to_s
-          "\t" + input.backtrace.map do |path|
+          "\n\t" + input.backtrace.map do |path|
             path.to_s.delete_prefix(app_path)
           end.join("\n\t")
         end
@@ -66,7 +66,7 @@ module Steroids
         def format_errors(input)
           record = input.respond_to?(:record) && input.record ? input.record : "Error"
           "  ↳" + input.errors.map do |error|
-            "[#{record}]: #{error}"
+            "[#{record}] #{error}"
           end.join("\n  ↳")
         end
 
@@ -77,7 +77,7 @@ module Steroids
               assert_presence(input, :cause) && format_cause(input),
               assert_presence(input, :errors) && format_errors(input),
               assert_presence(input, :backtrace) && format_backtrace(input)
-            ].compact_blank.join("\n")
+            ].compact_blank.join("\n\n")
           else
             input
           end
