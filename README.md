@@ -23,7 +23,7 @@ Rails 7+
 
 ## Disclaimer
 
-Under active development. We may not respect SemVer. Use at your own risks.
+Under active development. We may not respect SemVer. Use at your own risk.
 
 ## Todo
 
