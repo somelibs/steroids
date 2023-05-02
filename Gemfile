@@ -15,4 +15,5 @@ gemspec
 # gem 'byebug', group: [:development, :test]
 
 gem "rails", "~> 7.0"
+gem "rainbow", "~> 3.1", ">= 3.1.1"
 gem "active_model_serializers", git: "https://github.com/rails-api/active_model_serializers.git", branch: "0-10-stable"

@@ -1,3 +1,5 @@
+require 'rainbow'
+
 module Steroids
   module Utils
     class Logger
@@ -66,7 +68,7 @@ module Steroids
 
         def format_message(input)
           [
-            "\n▶ #{input.class.to_s} -- #{input.message.to_s.upcase_first}",
+            "\n#{Rainbow("▶").magenta} #{Rainbow(input.class.to_s).red} -- #{Rainbow(input.message.to_s.upcase_first).magenta}",
             input.respond_to?(:id) && "[ID: #{input.id.to_s}]",
             format_timestamp(input),
           ].compact_blank.join(" ")
@@ -87,9 +89,9 @@ module Steroids
         def format_backtrace(input)
           app_path = "#{Rails.root.to_s}/"
           if @backtrace_verbosity == :full
-            "\t" + input.backtrace.map do |path|
+            "  " + @backtrace.map do |path|
               path.to_s.delete_prefix(app_path)
-            end.join("\n\t") if input.backtrace.any?
+            end.join("\n  ") if @backtrace.any?
           elsif @backtrace_verbosity == :concise
             format_origin
           end
@@ -102,11 +104,16 @@ module Steroids
           end.join("\n  • ") if input.errors.any?
         end
 
+        def format_context(input)
+          Rainbow("  ➤ Context: ").cyan + Rainbow(input.context.to_s).blue
+        end
+
         def format_input(input)
           if input.is_a?(Exception)
             [
               format_message(input),
               assert_presence(input, :errors) && format_errors(input),
+              assert_presence(input, :context) && format_context(input),
               assert_presence(input, :cause) && format_cause(input),
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"

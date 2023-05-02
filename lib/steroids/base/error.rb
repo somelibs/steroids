@@ -13,6 +13,7 @@ module Steroids
       attr_reader :errors
       attr_reader :quote
       attr_reader :record
+      attr_reader :context
       attr_reader :timestamp
       attr_reader :logged
 
@@ -22,6 +23,7 @@ module Steroids
         errors: nil,
         code: nil,
         cause: nil,
+        context: false,
         log: false,
         **splat
       )
@@ -31,6 +33,7 @@ module Steroids
         @timestamp = DateTime.now
         @id = SecureRandom.uuid
         @message = assert_message(cause, message)
+        @context = assert_context(cause, context)
         @errors = assert_errors(cause, errors)
         @status = assert_status(cause, status)
         @code = assert_code(code)
@@ -76,6 +79,10 @@ module Steroids
         message || @default_message || @@DEFAULT_MESSAGE
       end
 
+      def assert_context(cause, context)
+        context || reflect_on(cause, :context)
+      end
+
       def assert_status(cause, status)
         status || reflect_on(cause, :status) || assert_status_from_error(cause) || :unknown_error
       end
@@ -117,13 +124,14 @@ module Steroids
         reflect_on(cause, :record)
       end
 
-      def reflect_on(instance, key)
-        instance.respond_to?(key) ? instance.public_send(key) : nil
+      def reflect_on(cause, key)
+        logged = cause.respond_to?(:logged) && cause.logged
+        cause.respond_to?(key) && logged != true ? cause.public_send(key) : nil
       end
 
       def quiet_log
         Steroids::Utils::Logger.print(
-          "➤ #{self.class.name}: #{self.message} (quiet)",
+          "▶ #{self.class.name}: #{self.message} (quiet)",
           level: :info,
           backtrace: :concise
         )
