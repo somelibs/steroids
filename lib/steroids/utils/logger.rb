@@ -66,7 +66,7 @@ module Steroids
 
         def format_message(input)
           [
-            "\n➤ #{input.class.to_s} -- #{input.message.to_s.upcase_first}",
+            "\n▶ #{input.class.to_s} -- #{input.message.to_s.upcase_first}",
             input.respond_to?(:id) && "[ID: #{input.id.to_s}]",
             format_timestamp(input),
           ].compact_blank.join(" ")
@@ -79,7 +79,7 @@ module Steroids
 
         def format_cause(input)
           [
-            "↳ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
+            "  ➤ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
             input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"
           ].compact_blank.join(" ")
         end
@@ -87,7 +87,7 @@ module Steroids
         def format_backtrace(input)
           app_path = "#{Rails.root.to_s}/"
           if @backtrace_verbosity == :full
-            "\n\t" + input.backtrace.map do |path|
+            "\t" + input.backtrace.map do |path|
               path.to_s.delete_prefix(app_path)
             end.join("\n\t") if input.backtrace.any?
           elsif @backtrace_verbosity == :concise
@@ -97,18 +97,17 @@ module Steroids
 
         def format_errors(input)
           record = input.respond_to?(:record) && input.record ? input.record : "Error"
-          "  ↳ " + input.errors.map do |error|
+          "  • " + input.errors.map do |error|
             "#{record.class.name}: #{error}"
-          end.join("\n  ↳ ") if input.errors.any?
+          end.join("\n  • ") if input.errors.any?
         end
 
         def format_input(input)
           if input.is_a?(Exception)
             [
               format_message(input),
-              @backtrace_verbosity != :concise && format_origin,
-              assert_presence(input, :cause) && format_cause(input),
               assert_presence(input, :errors) && format_errors(input),
+              assert_presence(input, :cause) && format_cause(input),
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
           else
