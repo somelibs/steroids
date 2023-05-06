@@ -13,7 +13,7 @@ module Steroids
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
           else
-            output = format_input(input)
+            output = format_input(level, input)
             level = assert_level(input)
             Rails.logger.send(level, output)
             notify(level, output)
@@ -109,7 +109,7 @@ module Steroids
           Rainbow("  ➤ Context: ").cyan + Rainbow(input.context.to_s).blue
         end
 
-        def format_input(input)
+        def format_input(level, input)
           if input.is_a?(Exception)
             [
               format_message(input),
@@ -120,7 +120,7 @@ module Steroids
             ].compact_blank.join("\n") + "\n"
           else
             [
-              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow("ouput").magenta}:",
+              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow(level.to_s).magenta}:",
               input,
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
