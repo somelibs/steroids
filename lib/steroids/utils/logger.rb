@@ -8,7 +8,7 @@ module Steroids
       class << self
         attr_accessor :notifier
 
-        def print(input = nil, level: nil, backtrace: nil)
+        def print(input = nil, level: nil, backtrace: :concise)
           assert_backtrace(input, backtrace)
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
@@ -120,6 +120,7 @@ module Steroids
             ].compact_blank.join("\n") + "\n"
           else
             [
+              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow("ouput").red}:",
               input,
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
