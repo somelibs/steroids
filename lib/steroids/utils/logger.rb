@@ -80,7 +80,7 @@ module Steroids
         end
 
         def format_cause(input)
-          cause_message = assert_attribute(input.cause_message) || assert_attribute(cause.message) || "Unknown error"
+          cause_message = assert_attribute(input, cause_message) || assert_attribute(cause, message) || "Unknown error"
           [
             "  ➤ Cause: #{input.cause.class.name} -- #{cause_message.to_s}",
             input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"

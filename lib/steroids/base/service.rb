@@ -7,23 +7,25 @@ module Steroids
       @@skip_callbacks = false
 
       def call(options = {}, *args)
-        @output = nil
-        @force = options[:force] ||= false
-        @skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
-        @@wrap_in_transaction ?
-          ActiveRecord::Base.transaction { process_service(options, *args) }
-          : process_service(options, *args)
-        ensure!
-        @output
-      rescue StandardError => error
-        ActiveRecord::Rollback
-        ensure!
-        rescue_output = rescue!(error)
-        unless rescue_output
-          raise error
-        else
-          Steroids::Utils::Logger.print(error)
-          rescue_output
+        ActiveRecord::Base.connection_pool.with_connection do
+          @output = nil
+          @force = options[:force] ||= false
+          @skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
+          @@wrap_in_transaction ?
+            ActiveRecord::Base.transaction { process_service(options, *args) }
+            : process_service(options, *args)
+          ensure!
+          @output
+        rescue StandardError => error
+          ActiveRecord::Rollback
+          ensure!
+          rescue_output = rescue!(error)
+          unless rescue_output
+            raise error
+          else
+            Steroids::Utils::Logger.print(error)
+            rescue_output
+          end
         end
       end
 
