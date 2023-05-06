@@ -8,13 +8,13 @@ module Steroids
       class << self
         attr_accessor :notifier
 
-        def print(input = nil, level: nil, backtrace: :concise)
+        def print(input = nil, backtrace: :concise)
           assert_backtrace(input, backtrace)
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
           else
-            output = format_input(level, input)
             level = assert_level(input)
+            output = format_input(level, input)
             Rails.logger.send(level, output)
             notify(level, output)
             true
