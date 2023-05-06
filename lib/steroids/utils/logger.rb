@@ -120,7 +120,7 @@ module Steroids
             ].compact_blank.join("\n") + "\n"
           else
             [
-              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow("ouput").red}:",
+              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow("ouput").magenta}:",
               input,
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
