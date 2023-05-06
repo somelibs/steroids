@@ -131,7 +131,7 @@ module Steroids
 
       def quiet_log
         Steroids::Utils::Logger.print(
-          "▶ #{self.class.name}: #{self.message} (quiet)",
+          "#{Rainbow("▶ #{self.class.name}").magenta} -- #{Rainbow(self.message)} (quiet)",
           level: :info,
           backtrace: :concise
         )
