@@ -80,8 +80,9 @@ module Steroids
         end
 
         def format_cause(input)
+          cause_message = assert_attribute(input.cause_message) || assert_attribute(cause.message) || "Unknown error"
           [
-            "  ➤ Cause: #{input.cause.class.name} -- #{input.cause_message.to_s}",
+            "  ➤ Cause: #{input.cause.class.name} -- #{cause_message.to_s}",
             input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"
           ].compact_blank.join(" ")
         end
@@ -112,9 +113,9 @@ module Steroids
           if input.is_a?(Exception)
             [
               format_message(input),
-              assert_presence(input, :errors) && format_errors(input),
-              assert_presence(input, :context) && format_context(input),
-              assert_presence(input, :cause) && format_cause(input),
+              assert_attribute(input, :errors) && format_errors(input),
+              assert_attribute(input, :context) && format_context(input),
+              assert_attribute(input, :cause) && format_cause(input),
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
           else
@@ -125,7 +126,7 @@ module Steroids
           end
         end
 
-        def assert_presence(instance, key)
+        def assert_attribute(instance, key)
           instance.respond_to?(key) && instance.public_send(key)
         end
       end
