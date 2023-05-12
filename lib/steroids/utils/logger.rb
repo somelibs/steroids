@@ -35,6 +35,17 @@ module Steroids
           end
         end
 
+        def assert_color(level)
+          case level
+            when :error
+              :red
+            when :warn
+              :yellow
+            when :info
+              :green
+            end
+        end
+
         def assert_backtrace(input, verbosity)
           @backtrace = input.is_a?(Exception) ? input.backtrace : caller
           @backtrace_verbosity = begin
@@ -110,6 +121,7 @@ module Steroids
         end
 
         def format_input(level, input)
+          color = assert_color(level)
           if input.is_a?(Exception)
             [
               format_message(input),
@@ -120,7 +132,7 @@ module Steroids
             ].compact_blank.join("\n") + "\n"
           else
             [
-              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").red} -- #{Rainbow(level.to_s).magenta}:",
+              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").send(color)} -- #{Rainbow(level.to_s).send(color)}:",
               input,
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
