@@ -8,8 +8,9 @@ module Steroids
       class << self
         attr_accessor :notifier
 
-        def print(input = nil, backtrace: :concise)
-          assert_backtrace(input, backtrace)
+        def print(input = nil, verbosity: nil, format: :decorated)
+          assert_format(format)
+          assert_backtrace(input, verbosity)
           if input.is_a?(Steroids::Base::Error) && input.logged == true
             false
           else
@@ -49,14 +50,29 @@ module Steroids
         def assert_backtrace(input, verbosity)
           @backtrace = input.is_a?(Exception) ? input.backtrace : caller
           @backtrace_verbosity = begin
-            if verbosity == nil && input.is_a?(Exception)
-              :full
-            elsif [:full, :concise, :none].include?(verbosity)
+            if [:full, :concise, :none].include?(verbosity)
               verbosity
+            elsif input.is_a?(Exception)
+              :full
             else
               :none
             end
           end
+        end
+
+        def clean_path(input_path)
+          root_path_array = Rails.root.to_s.split("/")
+          root_path_array.slice!(root_path_array.size-1..)
+          input_path_array = input_path.split("/")
+          zipped_array = root_path_array.zip(input_path_array)
+          matchs = zipped_array.take_while { |root_path, input_path| root_path == input_path }
+          output_path = matchs.map(&:first)
+          common_path = output_path.join("/")
+          input_path.sub(common_path, '').sub(/^\//, '')
+        end
+
+        def assert_format(format)
+          @format = [:raw, :decorated].include?(format) ? format : :decorated
         end
 
         def notify(level, input)
@@ -86,8 +102,7 @@ module Steroids
         end
 
         def format_origin
-          app_path = "#{Rails.root.to_s}/"
-          "  ↳ #{backtrace_origin.to_s.delete_prefix(app_path)}"
+          "  ↳ #{clean_path(backtrace_origin.to_s)}"
         end
 
         def format_cause(input)
@@ -99,10 +114,9 @@ module Steroids
         end
 
         def format_backtrace(input)
-          app_path = "#{Rails.root.to_s}/"
           if @backtrace_verbosity == :full
             "  " + @backtrace.map do |path|
-              path.to_s.delete_prefix(app_path)
+              clean_path(path.to_s)
             end.join("\n  ") if @backtrace.any?
           elsif @backtrace_verbosity == :concise
             format_origin
@@ -131,8 +145,9 @@ module Steroids
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
           else
+            decorator = "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").send(color)} -- #{Rainbow(level.to_s).send(color)}:"
             [
-              "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").send(color)} -- #{Rainbow(level.to_s).send(color)}:",
+              @format == :decorated && decorator,
               input,
               [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
             ].compact_blank.join("\n") + "\n"
