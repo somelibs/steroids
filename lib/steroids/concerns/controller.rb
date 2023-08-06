@@ -16,9 +16,6 @@ module Steroids
               return __response(paginated_data, options)
             }
             format.any {
-              puts ' -------------------- resource ' + resources.inspect
-              puts ' ------------------------->> defined?(super) ---->>> ' + defined?(super).inspect
-
               return defined?(super) ? super(*resources, &block) : resource
             }
           end
