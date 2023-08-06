@@ -108,7 +108,7 @@ module Steroids
         def format_cause(input)
           cause_message = assert_attribute(input, :cause_message) || assert_attribute(input.cause, :message) || "Unknown error"
           [
-            "  ➤ Cause: #{input.cause.class.name} -- #{cause_message.to_s}",
+            Rainbow("\n  ➤ Cause: #{input.cause.class.name}").cyan + " -- #{cause_message.to_s}",
             input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"
           ].compact_blank.join(" ")
         end
@@ -141,8 +141,8 @@ module Steroids
               format_message(input),
               assert_attribute(input, :errors) && format_errors(input),
               assert_attribute(input, :context) && format_context(input),
-              assert_attribute(input, :cause) && format_cause(input),
-              [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input)
+              [:full, :concise].include?(@backtrace_verbosity) && format_backtrace(input),
+              assert_attribute(input, :cause) && format_cause(input)
             ].compact_blank.join("\n") + "\n"
           else
             decorator = "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").send(color)} -- #{Rainbow(level.to_s).send(color)}:"
