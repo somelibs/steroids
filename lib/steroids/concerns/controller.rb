@@ -16,7 +16,7 @@ module Steroids
               return __response(paginated_data, options)
             }
             format.any {
-              return defined?(super) ? super(resources, &block) : resource
+              return defined?(super) ? super(*resources, &block) : resource
             }
           end
         end
