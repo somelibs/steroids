@@ -7,14 +7,14 @@ module Steroids
       @@skip_callbacks = false
 
       def call(options = {}, *args)
-        @output = nil
-        @force = options[:force] ||= false
-        @skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
+        @steroids_output = nil
+        @steroids_force = options[:force] ||= false
+        @steroids_skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
         @@wrap_in_transaction ?
           ActiveRecord::Base.transaction { process_service(options, *args) }
           : process_service(options, *args)
         ensure!
-        @output
+        @steroids_output
       rescue StandardError => error
         ActiveRecord::Rollback
         ensure!
@@ -42,10 +42,10 @@ module Steroids
       private
 
       def process_service(options, *args)
-        run_before_callbacks(options, *args) unless @skip_callbacks
-        @output = process
-        run_after_callbacks(@output) unless @skip_callbacks
-        if errors? && !@force
+        run_before_callbacks(options, *args) unless @steroids_skip_callbacks
+        @steroids_output = process
+        run_after_callbacks(@steroids_output) unless @steroids_skip_callbacks
+        if errors? && !@steroids_force
           raise Steroids::Errors::GenericError.new(
             errors: errors,
             log: true
@@ -54,7 +54,7 @@ module Steroids
       end
 
       def exit(message: nil)
-        unless @force
+        unless @steroids_force
           raise Steroids::Errors::InternalServerError.new(
             message: message,
             errors: errors,
@@ -64,7 +64,7 @@ module Steroids
       end
 
       def drop(message: nil)
-        unless @force
+        unless @steroids_force
           raise Steroids::Errors::BadRequestError.new(
             message: message,
             errors: errors,
@@ -74,8 +74,8 @@ module Steroids
       end
 
       def run_before_callbacks(*args)
-        if self.class.before_callbacks.is_a?(Array)
-          self.class.before_callbacks.each do |callback|
+        if self.class.steroids_before_callbacks.is_a?(Array)
+          self.class.steroids_before_callbacks.each do |callback|
             method(callback).parameters.any? ? send(callback, *args) : send(callback)
           end
         end
@@ -84,8 +84,8 @@ module Steroids
 
       def run_after_callbacks(output)
         method(:after_process).parameters.any? ? after_process(output) : after_process
-        if self.class.after_callbacks.is_a?(Array)
-          self.class.after_callbacks.each do |callback|
+        if self.class.steroids_after_callbacks.is_a?(Array)
+          self.class.steroids_after_callbacks.each do |callback|
             method(callback).parameters.any? ? send(callback, output) : send(callback)
           end
         end
@@ -96,13 +96,13 @@ module Steroids
         attr_accessor :after_callbacks
 
         def before_process(method)
-          @before_callbacks ||= []
-          @before_callbacks << method
+          @steroids_before_callbacks ||= []
+          @steroids_before_callbacks << method
         end
 
         def after_process(method)
-          @after_callbacks ||= []
-          @after_callbacks << method
+          @steroids_after_callbacks ||= []
+          @steroids_after_callbacks << method
         end
       end
     end
