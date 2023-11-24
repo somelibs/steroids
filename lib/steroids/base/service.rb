@@ -92,8 +92,8 @@ module Steroids
       end
 
       class << self
-        attr_accessor :before_callbacks
-        attr_accessor :after_callbacks
+        attr_accessor :steroids_before_callbacks
+        attr_accessor :steroids_after_callbacks
 
         def before_process(method)
           @steroids_before_callbacks ||= []
