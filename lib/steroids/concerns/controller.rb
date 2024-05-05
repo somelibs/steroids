@@ -22,6 +22,7 @@ module Steroids
         end
 
         def context
+          Rails.logger.warn('Using context is deprecated and will be removed.')
           @context ||= Steroids::Base::Hash.new
         end
 
@@ -75,17 +76,11 @@ module Steroids
 
           def service(service_name, class_name:)
             define_method service_name do | *args, **options |
-              options_hash = options.to_h
-              context_object = @context || {}
-              current_attributes = defined?(Current) && Current.respond_to?(:attributes) ? Current.attributes : {}
-              service_options = ActiveSupport::HashWithIndifferentAccess.new({
-                **current_attributes,
-                **context_object,
-                **options_hash
-              })
-              service_class = Object.const_get(class_name)
-              service_instance = service_class.new(*args, **service_options)
-              service_instance.call
+              merged_options = context.merge(options).symbolize_keys
+              Object.const_get(class_name).new(
+                *args,
+                **merged_options
+              ).call
             end
           end
         end
