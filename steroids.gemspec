@@ -1,3 +1,6 @@
+# -*- encoding: utf-8 -*-
+# frozen_string_literal: true
+
 $:.push File.expand_path("lib", __dir__)
 
 require "steroids/version"
@@ -5,9 +8,9 @@ require "steroids/version"
 Gem::Specification.new do | spec |
   spec.name        = 'steroids'
   spec.version     = Steroids::VERSION
-  spec.date        = '2021-03-04'
+  spec.date        = '2024-05-05'
   spec.summary     = "Steroids - Rails helpers"
-  spec.description = "Steroids provides helper for Service-oriented, API based, Rails apps."
+  spec.description = spec.summary
   spec.authors     = ["Paul Reboh"]
   spec.email       = 'paul@reboh.net'
   spec.homepage    = 'https://github.com/somelibs/steroids'

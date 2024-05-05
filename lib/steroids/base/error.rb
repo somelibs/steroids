@@ -2,8 +2,8 @@ module Steroids
   module Base
     class Error < StandardError
       include ActiveModel::Serialization
-
-      @@DEFAULT_MESSAGE = "Oops, something went wrong (Unknown error)"
+      @@message = "Oops, something went wrong (Unknown error)"
+      @@status = :unknown_error
 
       attr_reader :id
       attr_reader :message
@@ -18,6 +18,7 @@ module Steroids
       attr_reader :logged
 
       def initialize(
+        message_string = nil,
         status: false,
         message: false,
         errors: nil,
@@ -32,7 +33,7 @@ module Steroids
         set_backtrace(cause&.backtrace || backtrace_locations || caller)
         @timestamp = DateTime.now
         @id = SecureRandom.uuid
-        @message = assert_message(cause, message)
+        @message = assert_message(cause, message_string || message)
         @context = assert_context(cause, context)
         @errors = assert_errors(cause, errors)
         @status = assert_status(cause, status)
@@ -62,7 +63,7 @@ module Steroids
 
       def quote
         begin
-          path = File.join(Steroids.path, "misc/quotes.yml")
+          path = File.join(Steroids.root, "misc/quotes.yml")
           quotes = Rails.cache.fetch("steroids/quotes") do
             YAML.load_file(path)
           end
@@ -76,7 +77,7 @@ module Steroids
       private
 
       def assert_message(cause, message)
-        message || @default_message || @@DEFAULT_MESSAGE
+        message || @@message
       end
 
       def assert_context(cause, context)
@@ -88,7 +89,7 @@ module Steroids
       end
 
       def assert_status_from_error(cause)
-        error_class = cause ? cause.class : self.class
+        error_class = cause.is_a?(Exception) ? cause.class : self.class
         # Improvement needed
         # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
         case error_class
@@ -135,12 +136,6 @@ module Steroids
           verbosity: :concise,
           format: :raw
         )
-      end
-
-      class << self
-        def default_message(message)
-          @default_message = message
-        end
       end
     end
   end

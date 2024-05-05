@@ -1,14 +1,8 @@
 module Steroids
   module Errors
     class ForbiddenError < Steroids::Base::Error
-      default_message "You shall not pass! (Forbidden)"
-
-      def initialize(options = {})
-        super(
-          **options,
-          status: :forbidden
-        )
-      end
+      @@message = "You shall not pass! (Forbidden)"
+      @@status = :forbidden
     end
   end
 end

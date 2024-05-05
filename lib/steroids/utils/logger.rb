@@ -124,9 +124,9 @@ module Steroids
         end
 
         def format_errors(input)
-          record = input.respond_to?(:record) && input.record ? input.record : "Error"
           "  • " + input.errors.map do |error|
-            "#{record.class.name}: #{error}"
+            error_class = input.try(:record) || input.is_a?(Exception) ? input.class.name : "Error"
+            "#{error_class}: #{error}"
           end.join("\n  • ") if input.errors.any?
         end
 

@@ -1,15 +1,8 @@
 module Steroids
   module Errors
     class NotImplementedError < Steroids::Base::Error
-      def initialize(options = {})
-        options[:message] ||= "This feature hasn't been implemented yet"
-        super(
-          **{
-            status: :not_implemented,
-            key: :not_implemented
-          }.merge(options)
-        )
-      end
+      @@message = "This feature hasn't been implemented yet"
+      @@status = :not_implemented
     end
   end
 end

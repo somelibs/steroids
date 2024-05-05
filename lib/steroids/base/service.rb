@@ -6,7 +6,7 @@ module Steroids
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
-      def call(options = {}, *args)
+      def call(*args, **options)
         @steroids_output = nil
         @steroids_force = options[:force] ||= false
         @steroids_skip_callbacks = options[:skip_callbacks] || @@skip_callbacks ||= false
