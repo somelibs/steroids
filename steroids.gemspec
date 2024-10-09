@@ -22,7 +22,7 @@ Gem::Specification.new do | spec |
     raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
   end
 
-  spec.files       = Dir["{app,config,db,lib}/**/*", "Rakefile", "README.md"]
+  spec.files       = Dir["{app,config,misc,db,lib}/**/*", "Rakefile", "README.md"]
 
   spec.add_dependency "rainbow", ">= 3.1"
   spec.add_dependency "rails", ">= 6"

@@ -22,7 +22,7 @@ module Steroids
         end
 
         def context
-          Rails.logger.warn('Using context is deprecated and will be removed.')
+          Rails.logger.warn('Using context is deprecated and will be removed.') unless Rails.env.production?
           @context ||= Steroids::Base::Hash.new
         end
 
