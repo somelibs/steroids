@@ -3,7 +3,7 @@ module Steroids
     class Error < StandardError
       include ActiveModel::Serialization
       @@message = "Oops, something went wrong (Unknown error)"
-      @@status = :unknown_error
+      @@status = :internal_server_error
 
       attr_reader :id
       attr_reader :message
@@ -85,7 +85,7 @@ module Steroids
       end
 
       def assert_status(cause, status)
-        status || reflect_on(cause, :status) || assert_status_from_error(cause) || :unknown_error
+        status || reflect_on(cause, :status) || assert_status_from_error(cause) || @@status || :unknown_error
       end
 
       def assert_status_from_error(cause)
