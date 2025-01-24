@@ -63,7 +63,7 @@ module Steroids
 
       def quote
         begin
-          path = File.join(Steroids.root, "../misc/quotes.yml")
+          path = File.join(Steroids.root_path, "misc/quotes.yml")
           quotes = Rails.cache.fetch("steroids/quotes") do
             YAML.load_file(path)
           end
