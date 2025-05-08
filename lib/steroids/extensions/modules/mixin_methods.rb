@@ -14,8 +14,6 @@ module Steroids
             grundclass.define_method(method_name) do |*args|
               self.class.send(method_name, *args)
             end
-          elsif klass_name == "ClassMethods"
-            raise ArgumentError.new("Can't use mixin on Module ClassMethods. Use included instead.")
           else
             raise ArgumentError.new("Mixin expects a class method")
           end

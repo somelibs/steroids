@@ -3,6 +3,9 @@ module Steroids
     class Service < Steroids::Base::Class
       include Steroids::Concerns::Error
 
+      class_attribute :steroids_before_callbacks, default: []
+      class_attribute :steroids_after_callbacks, default: []
+
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
@@ -74,8 +77,8 @@ module Steroids
       end
 
       def run_before_callbacks(*args)
-        if self.class.steroids_before_callbacks.is_a?(Array)
-          self.class.steroids_before_callbacks.each do |callback|
+        if self.steroids_before_callbacks.is_a?(Array)
+          self.steroids_before_callbacks.each do |callback|
             method(callback).parameters.any? ? send(callback, *args) : send(callback)
           end
         end
@@ -84,25 +87,26 @@ module Steroids
 
       def run_after_callbacks(output)
         method(:after_process).parameters.any? ? after_process(output) : after_process
-        if self.class.steroids_after_callbacks.is_a?(Array)
-          self.class.steroids_after_callbacks.each do |callback|
+        if self.steroids_after_callbacks.is_a?(Array)
+          self.steroids_after_callbacks.each do |callback|
             method(callback).parameters.any? ? send(callback, output) : send(callback)
           end
         end
       end
 
       class << self
-        attr_accessor :steroids_before_callbacks
-        attr_accessor :steroids_after_callbacks
+        def call(*args, **options)
+          new(*args, **options).call
+        end
+
+        protected
 
         def before_process(method)
-          @steroids_before_callbacks ||= []
-          @steroids_before_callbacks << method
+          self.steroids_before_callbacks << method
         end
 
         def after_process(method)
-          @steroids_after_callbacks ||= []
-          @steroids_after_callbacks << method
+          self.steroids_after_callbacks << method
         end
       end
     end
