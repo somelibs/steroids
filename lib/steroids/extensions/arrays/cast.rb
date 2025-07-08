@@ -1,6 +1,6 @@
 module Steroids
   module Extensions
-    module Array
+    module Arrays
       module Cast
         class ElementNotFound < StandardError; end
 
@@ -12,4 +12,4 @@ module Steroids
   end
 end
 
-Array.include(Steroids::Extensions::Array::Cast)
+Array.include(Steroids::Extensions::Arrays::Cast)

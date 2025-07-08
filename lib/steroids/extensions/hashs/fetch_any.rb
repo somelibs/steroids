@@ -1,6 +1,6 @@
 module Steroids
   module Extensions
-    module Hash
+    module Hashs
       module FetchAny
         def fetch_any(*values)
           matching_key = self.keys.find do |key|
@@ -13,4 +13,4 @@ module Steroids
   end
 end
 
-Hash.include(Steroids::Extensions::Hash::FetchAny)
+Hash.include(Steroids::Extensions::Hashs::FetchAny)
