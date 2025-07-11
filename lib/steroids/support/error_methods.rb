@@ -9,7 +9,7 @@ module Steroids
         end
 
         def errors
-          @errors ||= Steroids::Base::List.new
+          @errors ||= []]
         end
       end
     end
