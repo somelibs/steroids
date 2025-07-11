@@ -1,7 +1,7 @@
 module Steroids
-  module Base
-    class Service < Steroids::Base::Class
-      include Steroids::Concerns::Error
+  module Services
+    class Base < Steroids::Support::MagicClass
+      include Steroids::Support::ErrorMethods
 
       @@wrap_in_transaction = true
       @@skip_callbacks = false
@@ -22,7 +22,7 @@ module Steroids
       rescue StandardError => error
         rescue_output = rescue!(error)
         if rescue_output
-          Steroids::Utils::Logger.print(error)
+          Steroids::Logger.print(error)
           rescue_output
         else
           raise error
@@ -104,6 +104,8 @@ module Steroids
 
       def run_async_process
         # TODO: Implement before and after callbacks, etc
+        # TODO: Prevent service from being both synchronous and asynchronous?
+        # e.g. raise errors if both methods are defined?
         async_process
       end
 

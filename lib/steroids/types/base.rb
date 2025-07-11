@@ -1,6 +1,6 @@
 module Steroids
-  module Base
-    class Type < Steroids::Base::Model
+  module Types
+    class Base < Steroids::Types::SerializableType
       def import(_options, _object = {})
         raise Steroids::Errors::InternalServerError.new(
           message: name + ': Import not implemented'

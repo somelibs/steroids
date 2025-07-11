@@ -1,6 +1,6 @@
 module Steroids
-  module Concerns
-    module Serializer
+  module Serializers
+    module Methods
       extend ActiveSupport::Concern
       included do
         def initialize(object, options = {})

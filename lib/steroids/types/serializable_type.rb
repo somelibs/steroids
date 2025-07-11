@@ -1,6 +1,6 @@
 module Steroids
-  module Base
-    class Model < Steroids::Base::Class
+  module Types
+    class SerializableType < Steroids::Support::MagicClass
       include ActiveModel::Model
       include ActiveModel::Serialization
 

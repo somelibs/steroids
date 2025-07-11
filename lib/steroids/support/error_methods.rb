@@ -1,7 +1,8 @@
 module Steroids
-  module Concerns
-    module Error
+  module Support
+    module ErrorMethods
       extend ActiveSupport::Concern
+
       included do
         def errors?
           errors.any?
@@ -9,10 +10,6 @@ module Steroids
 
         def errors
           @errors ||= Steroids::Base::List.new
-        end
-
-        class << self
-          attr_accessor :errors
         end
       end
     end

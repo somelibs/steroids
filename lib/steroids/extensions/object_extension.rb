@@ -21,6 +21,16 @@ module Steroids
         applied_options = options.select {|key| method.options.include?(key) } rescue {}
         self.send(method_name, *applied_arguments, **applied_options, &block)
       end
+
+      def typed!(expected_type)
+        return itself if instance_of?(expected_type) || itself == nil
+
+        message = "Expected #{self.inspect} to be an instance of #{expected_type.inspect}"
+        TypeError.new(message).tap do |exception|
+          exception.set_backtrace(caller)
+          raise exception
+        end
+      end
     end
   end
 end

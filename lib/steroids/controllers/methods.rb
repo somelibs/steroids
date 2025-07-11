@@ -1,7 +1,8 @@
 module Steroids
-  module Concerns
-    module Controller
+  module Controllers
+    module Methods
       extend ActiveSupport::Concern
+
       included do
         protected
 
@@ -23,7 +24,7 @@ module Steroids
 
         def context
           Rails.logger.warn('Using context is deprecated and will be removed.') unless Rails.env.production?
-          @context ||= Steroids::Base::Hash.new
+          @context ||= ActiveSupport::HashWithIndifferentAccess.new
         end
 
         private
@@ -65,23 +66,23 @@ module Steroids
             status ? head(status) : raise(Steroids::Errors::NotFoundError)
           end
         end
+      end
 
-        class << self
-          attr_accessor :serializer
-          attr_accessor :services
+      class_methods do
+        attr_accessor :serializer
+        attr_accessor :services
 
-          def default_serializer(serializer)
-            @serializer = serializer
-          end
+        def default_serializer(serializer)
+          @serializer = serializer
+        end
 
-          def service(service_name, class_name:)
-            define_method service_name do | *args, **options |
-              merged_options = context.merge(options).symbolize_keys
-              Object.const_get(class_name).new(
-                *args,
-                **merged_options
-              ).call
-            end
+        def service(service_name, class_name:)
+          define_method service_name do | *args, **options |
+            merged_options = context.merge(options).symbolize_keys
+            Object.const_get(class_name).new(
+              *args,
+              **merged_options
+            ).call
           end
         end
       end
