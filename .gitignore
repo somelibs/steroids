@@ -1,54 +1,104 @@
-###################
-#       Ruby      #
-###################
+# --------------------------------------------------------------------------------------------------
+# RAILS / RUBY
+# --------------------------------------------------------------------------------------------------
 
-Procfile.local
-.bundle
-dump.rdb
-.env.local
-*.gem
+# Bundler
 .bundle/
-log/*.log
-pkg/
-test/dummy/db/*.sqlite3
-test/dummy/db/*.sqlite3-journal
-test/dummy/db/*.sqlite3-*
-test/dummy/log/*.log
-test/dummy/storage/
-test/dummy/tmp/
+vendor/bundle
 
-###################
-#       Node      #
-###################
-
-node_modules
-
-###################
-#    Logs & Tmp   #
-###################
-
-tmp/*
-log/*
-*.log
-doc/*
-
-###################
-#      OS/IDE     #
-###################
-
-Desktop.ini
-.DS_Store
-.idea
-
+# Rails-specific
+.rspec
+.byebug_history
+.env
+.env.local
+config/master.key
+config/initializers/secret_token.rb
 config/settings.local.yml
 config/settings/*.local.yml
 config/environments/*.local.yml
+
+# SQLite DB
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-[0-9]*
+
+# Logs, tmp, etc.
+log/*
+tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# App-specific
+/app/assets/builds/*
+!/app/assets/builds/.keep
+/public/system
+/public/assets
+/public/uploads
+/public/packs
+/public/packs-test
+/storage/*
+!/storage/.keep
+
+# Testing
+/spec/tmp
+/coverage/
+rerun.txt
+pickle-email-*.html
+capybara-*.html
+
+# Misc
+*.rbc
+*.orig
+*.gem
+*.bowerrc
+bower.json
+dump.rdb
+
+# Test dummy apps (for engines)
+test/dummy/tmp/
+test/dummy/storage/
+
+# --------------------------------------------------------------------------------------------------
+# NODE / JAVASCRIPT
+# --------------------------------------------------------------------------------------------------
+
+/node_modules
+package-lock.json
+yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# --------------------------------------------------------------------------------------------------
+# CONFIG & ENV FILES
+# --------------------------------------------------------------------------------------------------
+
+*.env.local
+*.local
+*.local.yml
+Procfile.local
+
+# --------------------------------------------------------------------------------------------------
+# LOGS & DOCUMENTATION
+# --------------------------------------------------------------------------------------------------
+
+*.log
+*.dump
+doc/*
+
+# --------------------------------------------------------------------------------------------------
+# OS / IDE / EDITOR
+# --------------------------------------------------------------------------------------------------
+
+.DS_Store
+Desktop.ini
+.idea
+*.sw*
+tags
+.tags
+
+# --------------------------------------------------------------------------------------------------
+# TOOLS / CI / MISC
+# --------------------------------------------------------------------------------------------------
+
 config/google/*
 !config/google/.keep
-
-###################
-#      VIM        #
-###################
-*.sw*
-*tags
-
