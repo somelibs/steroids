@@ -114,7 +114,7 @@ module Steroids
           if Rails.env.development? || Rails.const_defined?(:Console)
             call_async
           else
-            SteroidsJob.perform_later(
+            AsyncServiceJob.perform_later(
               class_name: self.class.name,
               params: @_steroids_serialized_init_options
             )

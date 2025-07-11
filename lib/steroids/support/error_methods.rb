@@ -9,7 +9,7 @@ module Steroids
         end
 
         def errors
-          @errors ||= []]
+          @errors ||= []
         end
       end
     end
