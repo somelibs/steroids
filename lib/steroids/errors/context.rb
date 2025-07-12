@@ -6,7 +6,7 @@ module Steroids
       included do |base|
         private
 
-        def define_instance_variable_for(
+        def define_instance_variables_for(
           message_string,
           status: false,
           message: false,
@@ -47,27 +47,7 @@ module Steroids
 
         def assert_status_from_error(cause)
           error_class = cause.is_a?(Exception) ? cause.class : self.class
-
-          # Improvement needed
-          # See https://stackoverflow.com/questions/25892194/does-rails-come-with-a-not-authorized-exception
-          case error_class
-            when ::ActiveRecord::StaleObjectError then return :conflict
-            when ::ActiveRecord::RecordNotFound then return :not_found
-            when ::ActiveRecord::ActiveRecordError then return :bad_request
-            when ::ActiveRecord::RecordInvalid then return :bad_request
-            when ::ActionController::RoutingError then return :not_found
-            when ::ActionController::ParameterMissing then return :bad_request
-            when ::ActionController::UnknownFormat then return :not_acceptable
-            when ::ActionController::NotImplemented then return :not_implemented
-            when ::ActionController::UnknownHttpMethod then return :method_not_allowed
-            when ::ActionController::MethodNotAllowed then return :method_not_allowed
-            when ::ActionController::InvalidAuthenticityToken then return :unprocessable_entity
-            when ::ActionDispatch::Http::Parameters::ParseError then return :unprocessable_entity
-            when ::ActiveRecord::RecordNotSaved then return :unprocessable_entity
-            when ::ActiveModel::ValidationError then return :bad_request
-          end
-        rescue NameError => e
-          nil
+          ActionDispatch::ExceptionWrapper.rescue_responses[error_class.name] || :internal_server_error
         end
 
         def assert_code(status)
