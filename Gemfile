@@ -14,6 +14,6 @@ gemspec
 # To use a debugger
 # gem 'byebug', group: [:development, :test]
 
-gem "rails", "~> 7.0"
+gem "rails", "~> 7.1"
 gem "rainbow", "~> 3.1", ">= 3.1.1"
 gem "active_model_serializers", "~> 0.10.14"
