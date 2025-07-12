@@ -25,6 +25,14 @@ module Steroids
           end
         end
 
+        def full_messages
+          @errors.map do |error|
+            error[:message]
+          end.join("\n")
+        end
+
+        alias_method :full_message, :full_messages
+
         alias_method :<<, :add
       end
 
