@@ -1,7 +1,7 @@
 module Steroids
   module Support
     class MagicClass
-      include Steroids::Support::ErrorMethods
+      include Steroids::Support::NoticableMethods
 
       class << self
         # TODO: Get rid of this.

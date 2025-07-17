@@ -1,7 +1,7 @@
 module Steroids
   module Services
     class Base < Steroids::Support::MagicClass
-      include Steroids::Support::ErrorMethods
+      include Steroids::Support::NoticableMethods
 
       @@wrap_in_transaction = true
       @@skip_callbacks = false
@@ -25,7 +25,7 @@ module Steroids
           end
         ensure
           ensure! if respond_to?(:ensure!)
-          block.apply(self) if block_given?
+          block.apply(self, noticable: self.noticable) if block_given?
         end
       rescue StandardError, RuntimeError => error
         rescue_output = respond_to?(:rescue!) && send_apply(:rescue!, error)
@@ -55,7 +55,7 @@ module Steroids
         run_before_callbacks(options, *args) unless @steroids_skip_callbacks
         process.tap do |output|
           run_after_callbacks(output) unless @steroids_skip_callbacks
-          if any_errors? && !@steroids_force
+          if errors.any? && !@steroids_force
             raise Steroids::Errors::RuntimeError.new(
               errors: errors,
               log: true
