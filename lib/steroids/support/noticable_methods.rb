@@ -25,7 +25,7 @@ module Steroids
 
         attr_reader :collection
 
-        delegate :any?, :map, :to_a, to: :collection
+        delegate :any?, :map, :each, :to_a, to: :collection
 
         def initialize(collection_type)
           @collection_type = NOTICABLE_TYPES.cast(collection_type)
@@ -41,6 +41,14 @@ module Steroids
           end
         end
 
+        def merge(errors)
+          nil.tap do
+            errors.each do |error|
+              @collection << error
+            end
+          end
+        end
+
         alias_method :<<, :add
 
         def full_messages
@@ -53,25 +61,21 @@ module Steroids
       end
 
       # --------------------------------------------------------------------------------------------
-      # Noticable class
+      # Noticable runtime class (attached to instance)
       # --------------------------------------------------------------------------------------------
 
       class NoticableRuntime
         attr_reader :errors
-        attr_reader :notices
 
         def initialize(concern = [], success_notice: nil)
           @concern = concern
           @success_notice = success_notice.presence || success_notice_placeholder
           @errors = NoticableCollection.new(:errors)
-          @notices = NoticableCollection.new(:notices)
         end
 
         def full_messages
           @errors.full_messages.presence || @success_notice
         end
-
-        alias_method :full_message, :full_messages
 
         def errors?
           @errors.any?
@@ -81,9 +85,11 @@ module Steroids
           !errors?
         end
 
-        def to_s
-          full_messages
+        def message
+          self.errors? ? errors.full_messages : @success_notice
         end
+
+        alias_method :notice, :message
 
         private
 
@@ -105,10 +111,7 @@ module Steroids
           )
         end
 
-        delegate :errors, :notices, to: :noticable
-
-        alias_method :notice, :notices
-        alias_method :error, :errors
+        delegate :notice, :errors, :success?, :errors?, to: :noticable
       end
 
       class_methods do

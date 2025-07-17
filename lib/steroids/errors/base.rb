@@ -15,8 +15,8 @@ module Steroids
 
       def initialize(message_string = nil, **options)
         @caller = caller
-        extended_options = options.select{|key|OTPIONS.include?(k)}
-        splat_options = options.select{|key|!OTPIONS.include?(k)}
+        extended_options = options.select{|key|OTPIONS.include?(key)}
+        splat_options = options.select{|key|!OTPIONS.include?(key)}
         super(**splat_options, message: message, cause: cause)
         set_backtrace(cause&.backtrace || backtrace_locations || caller)
         define_instance_variables_for(message_string, **extended_options)

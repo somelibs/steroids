@@ -29,6 +29,7 @@ module Steroids
         end
       rescue StandardError, RuntimeError => error
         rescue_output = respond_to?(:rescue!) && send_apply(:rescue!, error)
+        errors.add(error.message)
         if rescue_output
           Steroids::Logger.print(error)
           rescue_output
@@ -37,7 +38,7 @@ module Steroids
         end
       end
 
-      def call_async
+      def call_async(&block)
         @@wrap_in_transaction ?
           ActiveRecord::Base.transaction { exec_async_process }
           : exec_async_process
@@ -55,12 +56,6 @@ module Steroids
         run_before_callbacks(options, *args) unless @steroids_skip_callbacks
         process.tap do |output|
           run_after_callbacks(output) unless @steroids_skip_callbacks
-          if errors.any? && !@steroids_force
-            raise Steroids::Errors::RuntimeError.new(
-              errors: errors,
-              log: true
-            )
-          end
         end
       end
 
@@ -127,16 +122,24 @@ module Steroids
         end
       end
 
+      def noticable_binding
+        Proc.new do |service|
+          if service.errors?
+            self.errors.merge(service.errors)
+          end
+        end
+      end
+
       class << self
         attr_accessor :steroids_before_callbacks
         attr_accessor :steroids_after_callbacks
 
-        def call(*args, **options)
-          new(*args, **options).call
+        def call(*args, **options, &block)
+          new(*args, **options).call(&block)
         end
 
-        def call_async(*args, **options)
-          new(*args, **options).call_async
+        def call_async(*args, **options, &block)
+          new(*args, **options).call_async(&block)
         end
 
         def new(*arguments, **options)
