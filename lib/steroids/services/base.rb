@@ -18,24 +18,22 @@ module Steroids
         skip_deferred = (!!options[:skip_deferred]) || @@skip_deferred ||= false
         async_exec = (!!options[:async]) || true
         begin
-          output = @@wrap_in_transaction ? ActiveRecord::Base.transaction { exec_process(options, *args) }
+          @@wrap_in_transaction ? ActiveRecord::Base.transaction { exec_process(options, *args) }
             : exec_process(options, *args)
-          output.tap do |output|
-            schedule_deferred(output, async_exec:) unless skip_deferred
-          end
-        ensure
-          ensure! if respond_to?(:ensure!)
-          block.apply(self, noticable: self.noticable) if block_given?
+        end.tap do |output|
+          schedule_deferred(output, async_exec:) unless skip_deferred
+          block.apply(self, output, noticable: self.noticable) if block_given?
         end
-      rescue StandardError, RuntimeError => error
+      rescue StandardError => error
         rescue_output = respond_to?(:rescue!) && send_apply(:rescue!, error)
-        errors.add(error.message)
         if rescue_output
           Steroids::Logger.print(error)
           rescue_output
         else
           raise error
         end
+      ensure
+        ensure! if respond_to?(:ensure!)
       end
 
       def call_async(&block)
@@ -57,6 +55,8 @@ module Steroids
         process.tap do |output|
           run_after_callbacks(output) unless @steroids_skip_callbacks
         end
+      rescue RuntimeError => error
+        errors.add(error.message)
       end
 
       def run_before_callbacks(*args)
