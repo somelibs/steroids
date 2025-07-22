@@ -65,17 +65,26 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       class NoticableRuntime
+        attr_reader :notices
         attr_reader :errors
 
         def initialize(concern = [], success_notice: nil)
           @concern = concern
           @success_notice = success_notice.presence || success_notice_placeholder
           @errors = NoticableCollection.new(:errors)
+          @notices = NoticableCollection.new(:notices)
         end
 
         def full_messages
-          @errors.full_messages.presence || @success_notice
+          if self.errors?
+            @errors.full_messages
+          else
+            @notices.full_messages.presence || @success_notice
+          end
         end
+
+        alias_method :notice, :full_messages
+        alias_method :message, :full_messages
 
         def errors?
           @errors.any?
@@ -85,11 +94,10 @@ module Steroids
           !errors?
         end
 
-        def message
-          self.errors? ? errors.full_messages : @success_notice
+        def merge(noticable)
+          @notices.merge(noticable.notices)
+          @errors.merge(noticable.errors)
         end
-
-        alias_method :notice, :message
 
         private
 
@@ -111,7 +119,7 @@ module Steroids
           )
         end
 
-        delegate :notice, :errors, :success?, :errors?, to: :noticable
+        delegate :notice, :errors, :notices, :success?, :errors?, to: :noticable
       end
 
       class_methods do

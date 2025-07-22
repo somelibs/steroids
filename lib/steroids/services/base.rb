@@ -1,45 +1,32 @@
 module Steroids
   module Services
     class Base < Steroids::Support::MagicClass
+      include Steroids::Support::ServicableMethods
       include Steroids::Support::NoticableMethods
 
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
-      class RuntimeError < Steroids::Errors::Base; end
+      class AmbiguousProcessMethodError < Steroids::Errors::Base; end
+
+      class RuntimeError < Steroids::Errors::Base
+        self.default_message = "Runtime error"
+      end
 
       # --------------------------------------------------------------------------------------------
       # Core public interface
       # --------------------------------------------------------------------------------------------
 
       def call(*args, **options, &block)
+        return unless process_method.present?
+
         @steroids_force = (!!options[:force]) || false
         @steroids_skip_callbacks = (!!options[:skip_callbacks]) || @@skip_callbacks || false
-        skip_deferred = (!!options[:skip_deferred]) || @@skip_deferred ||= false
-        async_exec = (!!options[:async]) || true
-        begin
-          @@wrap_in_transaction ? ActiveRecord::Base.transaction { exec_process(options, *args) }
-            : exec_process(options, *args)
-        end.tap do |output|
-          schedule_deferred(output, async_exec:) unless skip_deferred
-          block.apply(self, output, noticable: self.noticable) if block_given?
-        end
-      rescue StandardError => error
-        rescue_output = respond_to?(:rescue!) && send_apply(:rescue!, error)
-        if rescue_output
-          Steroids::Logger.print(error)
-          rescue_output
+        if process_method.name == :async_process
+          schedule_process(*args, **options, &block)
         else
-          raise error
+          exec_process(*args, **options, &block)
         end
-      ensure
-        ensure! if respond_to?(:ensure!)
-      end
-
-      def call_async(&block)
-        @@wrap_in_transaction ?
-          ActiveRecord::Base.transaction { exec_async_process }
-          : exec_async_process
       end
 
       private
@@ -48,38 +35,46 @@ module Steroids
       # Run process
       # --------------------------------------------------------------------------------------------
 
-      def exec_process(options, *args)
-        return unless respond_to?(:process)
-
-        run_before_callbacks(options, *args) unless @steroids_skip_callbacks
-        process.tap do |output|
-          run_after_callbacks(output) unless @steroids_skip_callbacks
-        end
-      rescue RuntimeError => error
-        errors.add(error.message)
-      end
-
-      def run_before_callbacks(*args)
-        if self.class.steroids_before_callbacks.is_a?(Array)
-          self.class.steroids_before_callbacks.each do |callback|
-            send_apply(callback, output)
+      def exec_process(*args, **options, &block)
+        outcome = process_wrapper do
+          run_before_callbacks(*args, **options) unless @steroids_skip_callbacks
+          process_method.call.tap do |outcome|
+            abort! if !block_given? && errors.any?
+            run_after_callbacks(outcome) unless @steroids_skip_callbacks
           end
         end
-        respond_to?(:before_process) && send_apply(:before_process, *args)
+      rescue StandardError => outcome
+        errors.add(outcome.message, outcome)
+        if respond_to?(:rescue!, true) || block_given?
+          Steroids::Logger.print(outcome)
+          send_apply(:rescue!, outcome)
+        else
+          raise outcome
+        end
+      ensure
+        ensure! if respond_to?(:ensure!, true)
+        block.apply(self, outcome, noticable: self.noticable) if block_given?
       end
 
-      def run_after_callbacks(output)
-        respond_to?(:after_process) && send_apply(:after_process, output)
-        if self.class.steroids_after_callbacks.is_a?(Array)
-          self.class.steroids_after_callbacks.each do |callback|
-            send_apply(callback, output)
+      def schedule_process(*args, **options, &block)
+        async_exec = (!!options[:async]) || true
+        if self.respond_to?(:async_process, true) && @_steroids_serialized_init_options.present?
+          if async_exec?(async_exec)
+            AsyncServiceJob.perform_later(
+              class_name: self.class.name,
+              params: @_steroids_serialized_init_options
+            )
+          else
+            exec_process(*args, **options, &block)
           end
         end
       end
 
-      # --------------------------------------------------------------------------------------------
-      # Run Async process
-      # --------------------------------------------------------------------------------------------
+      def process_method
+        raise AmbiguousProcessMethodError.new if respond_to?(:process, true) && respond_to?(:async_process, true)
+
+        try_method(:process) || try_method(:async_process)
+      end
 
       def async_exec?(async)
         !!if async == true && (Sidekiq::ProcessSet.new.any? || !Rails.env.development?)
@@ -87,32 +82,43 @@ module Steroids
         end
       end
 
-      def schedule_deferred(output, async_exec:)
-        if methods.include?(:async_process) && @_steroids_serialized_init_options
-          if async_exec?(async_exec)
-            AsyncServiceJob.perform_later(
-              class_name: self.class.name,
-              params: @_steroids_serialized_init_options
-            )
-          else
-            call_async
-          end
+      # --------------------------------------------------------------------------------------------
+      # Process wrapper
+      # --------------------------------------------------------------------------------------------
+
+      def process_wrapper(&block)
+        return block.call unless @@wrap_in_transaction
+
+        ActiveRecord::Base.transaction do
+          block.call
         end
+      rescue RuntimeError => error
+        errors.add(error.message)
       end
 
-      def exec_async_process
-        return unless respond_to?(:async_process)
-        # TODO: Implement before and after callbacks, etc
-        # TODO: Prevent service from being both synchronous and asynchronous?
-        # e.g. raise errors if both methods are defined?
-        async_process
+      def run_before_callbacks(*args, **options)
+        if self.class.steroids_before_callbacks.is_a?(Array)
+          self.class.steroids_before_callbacks.each do |callback|
+            send_apply(callback, *args, **options)
+          end
+        end
+        respond_to?(:before_process) && send_apply(:before_process, *args, **options)
+      end
+
+      def run_after_callbacks(outcome)
+        respond_to?(:after_process) && send_apply(:after_process, outcome)
+        if self.class.steroids_after_callbacks.is_a?(Array)
+          self.class.steroids_after_callbacks.each do |callback|
+            send_apply(callback, outcome)
+          end
+        end
       end
 
       # --------------------------------------------------------------------------------------------
       # Flow control
       # --------------------------------------------------------------------------------------------
 
-      def drop(message_or_nil = nil, message: nil)
+      def abort!(message_or_nil = nil, message: nil)
         unless @steroids_force
           raise RuntimeError.new(
             message: message_or_nil || message,
@@ -122,24 +128,12 @@ module Steroids
         end
       end
 
-      def noticable_binding
-        Proc.new do |service|
-          if service.errors?
-            self.errors.merge(service.errors)
-          end
-        end
-      end
-
       class << self
         attr_accessor :steroids_before_callbacks
         attr_accessor :steroids_after_callbacks
 
         def call(*args, **options, &block)
           new(*args, **options).call(&block)
-        end
-
-        def call_async(*args, **options, &block)
-          new(*args, **options).call_async(&block)
         end
 
         def new(*arguments, **options)

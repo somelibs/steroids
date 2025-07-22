@@ -4,8 +4,7 @@ module Steroids
 
     def perform(class_name:, params:)
       service = class_name.constantize
-      instance = service.new(**params)
-      instance.call_worker
+      service.new(**params).call
     end
   end
 end

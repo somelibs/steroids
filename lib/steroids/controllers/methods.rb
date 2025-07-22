@@ -6,7 +6,7 @@ module Steroids
       included do
         include RespondersHelper
         include SerializersHelper
-        include ServicesHelper
+        include Support::ServicableMethods
 
         def context
           Rails.logger.warn('Using context is deprecated and will be removed.') unless Rails.env.production?

@@ -14,12 +14,26 @@ module Steroids
       end
 
       def send_apply(method_name, *arguments, **options, &block)
+        return unless respond_to?(method_name, true)
+
         method = method(method_name)
         expected_argument_count = method.arguments.count
         expected_options_count = method.options.count
         applied_arguments = arguments.first(expected_argument_count) rescue []
         applied_options = options.select {|key| method.options.include?(key) } rescue {}
         self.send(method_name, *applied_arguments, **applied_options, &block)
+      end
+
+      def send_apply!(method_name, *arguments, **options, &block)
+        return NoMethodError.new("Send apply", method_name) unless self.respond_to?(method_name, true)
+
+        send_apply(method_name, *arguments, **options, &block)
+      end
+
+      def try_method(method_name)
+        if self.respond_to?(method_name, true)
+          self.method(method_name)
+        end
       end
 
       def typed!(expected_type)
