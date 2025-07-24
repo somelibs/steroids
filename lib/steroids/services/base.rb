@@ -9,6 +9,8 @@ module Steroids
 
       class AmbiguousProcessMethodError < Steroids::Errors::Base; end
 
+      class AsyncProcessArgumentError < Steroids::Errors::Base; end
+
       class RuntimeError < Steroids::Errors::Base
         self.default_message = "Runtime error"
       end
@@ -58,7 +60,7 @@ module Steroids
 
       def schedule_process(*args, **options, &block)
         async_exec = (!!options[:async]) || true
-        if self.respond_to?(:async_process, true) && @_steroids_serialized_init_options.present?
+        if self.respond_to?(:async_process, true)
           if async_exec?(async_exec)
             AsyncServiceJob.perform_later(
               class_name: self.class.name,
@@ -71,9 +73,8 @@ module Steroids
       end
 
       def process_method
-        raise AmbiguousProcessMethodError.new if respond_to?(:process, true) && respond_to?(:async_process, true)
-
-        try_method(:process) || try_method(:async_process)
+        self.class.validate_process_definition!
+        @process_method ||= (try_method(:process) || try_method(:async_process))
       end
 
       def async_exec?(async)
@@ -132,15 +133,23 @@ module Steroids
         attr_accessor :steroids_before_callbacks
         attr_accessor :steroids_after_callbacks
 
+        def async?
+          self.private_instance_methods.include?(:async_process) || self.instance_methods.include?(:async_process)
+        end
+
         def call(*args, **options, &block)
           new(*args, **options).call(&block)
         end
 
         def new(*arguments, **options)
+          validate_process_definition!
           instance = super
-          if arguments.empty?
-             # TODO: check that options are serializable.
-            instance.instance_variable_set(:"@_steroids_serialized_init_options", options)
+          if self.async?
+            if arguments.empty? && options.serializable?
+              instance.instance_variable_set(:"@_steroids_serialized_init_options", options.deep_serialize)
+            else
+              raise AsyncProcessArgumentError.new("Async services require serializable options")
+            end
           end
           instance
         end
@@ -151,6 +160,12 @@ module Steroids
 
         def steroids_after_callbacks
           @steroids_after_callbacks ||= []
+        end
+
+        def validate_process_definition!
+          if async? && (self.private_instance_methods.include?(:process) || self.instance_methods.include?(:process))
+            raise AmbiguousProcessMethodError.new("Can't define both `process` and `async_process`")
+          end
         end
 
         protected
