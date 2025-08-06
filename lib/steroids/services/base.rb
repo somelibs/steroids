@@ -41,7 +41,7 @@ module Steroids
         outcome = process_wrapper do
           run_before_callbacks(*args, **options) unless @steroids_skip_callbacks
           process_method.call.tap do |outcome|
-            abort! if !block_given? && errors.any?
+            drop! if !block_given? && errors.any?
             run_after_callbacks(outcome) unless @steroids_skip_callbacks
           end
         end
@@ -103,11 +103,11 @@ module Steroids
             send_apply(callback, *args, **options)
           end
         end
-        respond_to?(:before_process) && send_apply(:before_process, *args, **options)
+        send_apply(:before_process, *args, **options)
       end
 
       def run_after_callbacks(outcome)
-        respond_to?(:after_process) && send_apply(:after_process, outcome)
+        send_apply(:after_process, outcome)
         if self.class.steroids_after_callbacks.is_a?(Array)
           self.class.steroids_after_callbacks.each do |callback|
             send_apply(callback, outcome)
@@ -119,7 +119,7 @@ module Steroids
       # Flow control
       # --------------------------------------------------------------------------------------------
 
-      def abort!(message_or_nil = nil, message: nil)
+      def drop!(message_or_nil = nil, message: nil)
         unless @steroids_force
           raise RuntimeError.new(
             message: message_or_nil || message,

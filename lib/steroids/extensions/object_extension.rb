@@ -1,15 +1,13 @@
 module Steroids
   module Extensions
     module ObjectExtension
-      def ifnil(default)
-        itself == nil ? default : itself
-      end
+      # --------------------------------------------------------------------------------------------
+      # Apply and send
+      # --------------------------------------------------------------------------------------------
 
       def instance_apply(*arguments, **options, &block)
-        expected_argument_count = block.arguments.count
-        expected_options_count = block.options.count
-        applied_arguments = arguments.first(expected_argument_count) rescue []
-        applied_options = options.select {|key| block.options.include?(key) } rescue {}
+        applied_arguments = applied_arguments_for(block, arguments)
+        applied_options = applied_options_for(block, options)
         self.instance_exec(*applied_arguments, **applied_options, &block)
       end
 
@@ -17,10 +15,8 @@ module Steroids
         return unless respond_to?(method_name, true)
 
         method = method(method_name)
-        expected_argument_count = method.arguments.count
-        expected_options_count = method.options.count
-        applied_arguments = arguments.first(expected_argument_count) rescue []
-        applied_options = options.select {|key| method.options.include?(key) } rescue {}
+        applied_arguments = applied_arguments_for(method, arguments)
+        applied_options = applied_options_for(method, options)
         self.send(method_name, *applied_arguments, **applied_options, &block)
       end
 
@@ -30,11 +26,32 @@ module Steroids
         send_apply(method_name, *arguments, **options, &block)
       end
 
+      private def applied_arguments_for(method, arguments)
+        expected_arguments_count = method.arguments.count
+        method.rest? ? arguments : arguments.first(expected_arguments_count)
+      rescue
+        []
+      end
+
+      private def applied_options_for(method, options)
+        method.spread? ? options : options.select {|key| method.options.include?(key) }
+      rescue
+        {}
+      end
+
+      # --------------------------------------------------------------------------------------------
+      # Try method
+      # --------------------------------------------------------------------------------------------
+
       def try_method(method_name)
         if self.respond_to?(method_name, true)
           self.method(method_name)
         end
       end
+
+      # --------------------------------------------------------------------------------------------
+      # Type
+      # --------------------------------------------------------------------------------------------
 
       def typed!(expected_type)
         return itself if instance_of?(expected_type) || itself == nil
@@ -45,6 +62,18 @@ module Steroids
           raise exception
         end
       end
+
+      # --------------------------------------------------------------------------------------------
+      # If nil default
+      # --------------------------------------------------------------------------------------------
+
+      def ifnil(default)
+        itself == nil ? default : itself
+      end
+
+      # --------------------------------------------------------------------------------------------
+      # Serialization
+      # --------------------------------------------------------------------------------------------
 
       def serializable?(include_object = true)
         if self.is_a?(Hash)

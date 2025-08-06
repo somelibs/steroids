@@ -16,6 +16,14 @@ module Steroids
       def options
         self.parameters.select { |key,v| key == :key || key == :keyreq }.map { |option| option.second }
       end
+
+      def spread?
+        !!self.parameters.find { |parameter| parameter.first == :keyrest }
+      end
+
+      def rest?
+        !!self.parameters.find { |parameter| parameter.first == :rest }
+      end
     end
   end
 end
