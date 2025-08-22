@@ -20,6 +20,30 @@ module Steroids
           end
         end
       end
+
+      def build_anonymous(name, **options, &block)
+        parent_class = options.fetch(:inherit)
+        class_name = name.camelize
+        self.new(parent_class) do
+          include Module.new(&block)
+
+          define_singleton_method(:name) do
+            class_name
+          end
+
+          define_singleton_method(:inspect) do
+            super().gsub("#<Class:", "#<Anonymous:#{class_name}:")
+          end
+
+          define_singleton_method(:to_s) do
+            self.inspect
+          end
+
+          define_singleton_method(:anonymous?) do
+            true
+          end
+        end
+      end
     end
   end
 end

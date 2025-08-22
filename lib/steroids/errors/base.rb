@@ -17,9 +17,9 @@ module Steroids
         @caller = caller
         extended_options = options.select{|key|OTPIONS.include?(key)}
         splat_options = options.select{|key|!OTPIONS.include?(key)}
-        super(**splat_options, message: message, cause: cause)
-        set_backtrace(cause&.backtrace || backtrace_locations || caller)
         define_instance_variables_for(message_string, **extended_options)
+        super(**splat_options, message: message, cause: @cause)
+        set_backtrace(@cause&.backtrace || backtrace_locations || caller)
         extended_options.fetch(:log, false) ? self.log! : self.quiet_log
       end
 
