@@ -61,12 +61,17 @@ module Steroids
         end
       end
 
-      def try_delegate(*method_names, to:)
-        method_names.each do |delegated_name|
-          original_method = self.try_method(delegated_name)
-          if to.try_method(delegated_name)
-            self.define_method(delegated_name) do |*arguments, **options, &block|
-              to.send_apply(*arguments, **options, &block)
+      def try_delegate(*method_names, **options)
+        condition = options.fetch(:if, nil)
+        delegate_name = options.fetch(:to)
+        method_names.each do |method_name|
+          self.define_method(method_name) do |*arguments, **options, &block|
+            should_delegate = condition.present? ? !!self.send(condition) : true
+            delegate_object = self.try(delegate_name) rescue false
+            if delegate_object.present? && delegate_object.try_method(method_name)
+              delegate_object.send_apply(method_name, *arguments, **options, &block)
+            else
+              super(*arguments, **options, &block)
             end
           end
         end
