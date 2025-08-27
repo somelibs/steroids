@@ -1,6 +1,10 @@
 module Steroids
   module Extensions
     module ProcExtension
+      require "ruby2ruby"
+      require "ruby_parser"
+      require "method_source"
+
       def apply(*arguments, **options, &block)
         expected_argument_count = arguments.count
         expected_options_count = options.count

@@ -1,6 +1,46 @@
 module Steroids
   module Extensions
     module ClassExtension
+      # --------------------------------------------------------------------------------------------
+      # Methods
+      # --------------------------------------------------------------------------------------------
+
+      def runtime_methods(include_modules = true)
+        methods = if include_modules
+          self.methods(true)
+        else
+          methods = []
+          klass = self.class
+          while klass
+            methods += klass.methods
+            klass = klass.superclass
+          end
+          methods
+        end
+
+        methods - Object.methods
+      end
+
+      def runtime_instance_methods(include_modules = true)
+        methods = if include_modules
+          self.instance_methods(true)
+        else
+          methods = []
+          klass = self.class
+          while klass
+            methods += klass.methods
+            klass = klass.superclass
+          end
+          methods
+        end
+
+        methods - Object.instance_methods
+      end
+
+      # --------------------------------------------------------------------------------------------
+      # Delegate, proxy and so on
+      # --------------------------------------------------------------------------------------------
+
       def delegate_alias(alias_name, to:, method:)
         define_method(alias_name) do |*arguments, **options, &block|
           delegate = send(to)
@@ -8,21 +48,59 @@ module Steroids
         end
       end
 
-      def delegate_proxy(delegate_method_name, **options)
+      def forward_methods_to(method_name, **options)
         respond_to_hander = options.fetch(:if)
-        return unless self.instance_methods.include?(delegate_method_name) && respond_to_hander.present?
+        return unless self.instance_methods.include?(method_name) && respond_to_hander.present?
 
-        define_method(:method_missing) do |missing_method_name, *args, **options, &block|
-          if self.send(respond_to_hander, missing_method_name)
-            self.send(delegate_method_name, missing_method_name)
+        define_method(:method_missing) do |missing_method_name, *arguments, **options, &block|
+          if self.send_apply(respond_to_hander, missing_method_name)
+            self.send_apply(method_name, missing_method_name)
           else
-            super(missing_method_name, *args)
+            super(missing_method_name, *arguments, **options, &block)
           end
         end
       end
 
+      def try_delegate(*method_names, to:)
+        method_names.each do |delegated_name|
+          original_method = self.try_method(delegated_name)
+          if to.try_method(delegated_name)
+            self.define_method(delegated_name) do |*arguments, **options, &block|
+              to.send_apply(*arguments, **options, &block)
+            end
+          end
+        end
+      end
+
+      # --------------------------------------------------------------------------------------------
+      # Anonymous class building
+      # --------------------------------------------------------------------------------------------
+
+      def proxy(instance, &block)
+        name = "#{instance.class.name}Proxy"
+        Class.build_anonymous(name) do
+          include Module.new(&block)
+
+          define_method(:klass) do
+            instance.class
+          end
+
+          define_method(:method_missing) do |missing_method_name, *arguments, **options, &block|
+            if instance.respond_to?(missing_method_name, true)
+              instance.send_apply(missing_method_name, *arguments, **options, &block)
+            else
+              super(missing_method_name, *arguments, **options, &block)
+            end
+          end
+
+          define_method(:respond_to_missing?) do |missing_method_name, *arguments, **options, &block|
+            !!instance.respond_to?(missing_method_name, true)
+          end
+        end.new
+      end
+
       def build_anonymous(name, **options, &block)
-        parent_class = options.fetch(:inherit)
+        parent_class = options.fetch(:inherit, nil) || Class.new
         class_name = name.camelize
         self.new(parent_class) do
           include Module.new(&block)

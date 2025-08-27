@@ -11,24 +11,31 @@ module Steroids
         self.instance_exec(*applied_arguments, **applied_options, &block)
       end
 
+      # TODO: Rename to try_apply and implement/alias try_send
       def send_apply(method_name, *arguments, **options, &block)
         return unless respond_to?(method_name, true)
 
         method = method(method_name)
-        applied_arguments = applied_arguments_for(method, arguments)
+        applied_arguments = applied_arguments_for(method, arguments, options)
         applied_options = applied_options_for(method, options)
         self.send(method_name, *applied_arguments, **applied_options, &block)
       end
 
+      # TODO: Rename to send_apply
       def send_apply!(method_name, *arguments, **options, &block)
         return NoMethodError.new("Send apply", method_name) unless self.respond_to?(method_name, true)
 
         send_apply(method_name, *arguments, **options, &block)
       end
 
-      private def applied_arguments_for(method, arguments)
-        expected_arguments_count = method.arguments.count
-        method.rest? ? arguments : arguments.first(expected_arguments_count)
+      private def applied_arguments_for(method, arguments, options)
+        return arguments if method.rest?
+
+        expected_arguments_count = method.least_arguments.count
+        non_nil_arguments_count = arguments.take_while(&:present?).count
+        arguments.first([expected_arguments_count, non_nil_arguments_count].max).then do |applied|
+          method.options.empty? && !method.spread? && options.any? ? applied << options : applied
+        end
       rescue
         []
       end
@@ -63,8 +70,13 @@ module Steroids
       # Type
       # --------------------------------------------------------------------------------------------
 
-      def typed!(expected_type)
+      def typed(expected_type)
         return itself if instance_of?(expected_type) || itself == nil
+      end
+
+      def typed!(expected_type)
+        typed_itself = typed(expected_type)
+        return typed_itself if typed_itself == itself
 
         message = "Expected #{self.inspect} to be an instance of #{expected_type.inspect}"
         TypeError.new(message).tap do |exception|
