@@ -5,45 +5,26 @@ module Steroids
       # Apply and send
       # --------------------------------------------------------------------------------------------
 
-      def instance_apply(*arguments, **options, &block)
-        applied_arguments = applied_arguments_for(block, arguments)
-        applied_options = applied_options_for(block, options)
+      def instance_apply(*given_arguments, **given_options, &block)
+        applied_arguments = dynamic_arguments_for(block, given_arguments)
+        applied_options = dynamic_options_for(block, given_options)
         self.instance_exec(*applied_arguments, **applied_options, &block)
       end
 
       # TODO: Rename to try_apply and implement/alias try_send
-      def send_apply(method_name, *arguments, **options, &block)
+      def send_apply(method_name, *given_arguments, **given_options, &block)
         return unless respond_to?(method_name, true)
-
         method = method(method_name)
-        applied_arguments = applied_arguments_for(method, arguments, options)
-        applied_options = applied_options_for(method, options)
+        applied_arguments = method.dynamic_arguments_for(given_arguments, given_options)
+        applied_options = method.dynamic_options_for(given_options)
         self.send(method_name, *applied_arguments, **applied_options, &block)
       end
 
       # TODO: Rename to send_apply
-      def send_apply!(method_name, *arguments, **options, &block)
+      def send_apply!(method_name, *given_arguments, **given_options, &block)
         return NoMethodError.new("Send apply", method_name) unless self.respond_to?(method_name, true)
 
-        send_apply(method_name, *arguments, **options, &block)
-      end
-
-      private def applied_arguments_for(method, arguments, options)
-        return arguments if method.rest?
-
-        expected_arguments_count = method.least_arguments.count
-        non_nil_arguments_count = arguments.take_while(&:present?).count
-        arguments.first([expected_arguments_count, non_nil_arguments_count].max).then do |applied|
-          method.options.empty? && !method.spread? && options.any? ? applied << options : applied
-        end
-      rescue
-        []
-      end
-
-      private def applied_options_for(method, options)
-        method.spread? ? options : options.select {|key| method.options.include?(key) }
-      rescue
-        {}
+        send_apply(method_name, *given_arguments, **given_options, &block)
       end
 
       # --------------------------------------------------------------------------------------------
