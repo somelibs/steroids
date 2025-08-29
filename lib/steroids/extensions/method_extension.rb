@@ -8,7 +8,7 @@ module Steroids
       def apply(*given_arguments, **given_options, &block)
         applied_arguments = dynamic_arguments_for(given_arguments, given_options)
         applied_options = dynamic_options_for(given_options)
-        self.call(*applied_arguments, **applied_options, &block)
+        self.yield(*applied_arguments, **applied_options, &block)
       end
 
       def dynamic_arguments_for(given_arguments, given_options)
@@ -26,7 +26,7 @@ module Steroids
       def dynamic_options_for(given_options)
         return given_options if self.spread?
 
-        given_options.select {|key| self.options.include?(key) }
+        given_options.select { |key| self.options.include?(key) }
       end
 
       private def least_arguments
