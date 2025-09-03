@@ -1,7 +1,9 @@
 # Steroids
 
+[![Gem Version](https://img.shields.io/badge/version-1.6.0-green)](https://rubygems.org/gems/steroids)
 [![Rails](https://img.shields.io/badge/Rails-%3E%3D%207.1-red)](https://rubyonrails.org/)
 [![Ruby](https://img.shields.io/badge/Ruby-%3E%3D%203.0-red)](https://www.ruby-lang.org/)
+[![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)](https://github.com/somelibs/steroids)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE.md)
 
 **Steroids** supercharges your Rails applications with powerful service objects, enhanced error handling, and useful Ruby extensions. Build maintainable, testable business logic with a battle-tested service layer pattern.
@@ -108,6 +110,36 @@ else
   puts service.errors.full_messages
   # result is nil
 end
+```
+
+### Important Behaviors
+
+**Block Parameters**: When using blocks, the service instance is passed as the first parameter:
+```ruby
+CreateUserService.call(name: "John") do |service|
+  # service contains the service instance with noticable methods
+  if service.success?
+    # handle success
+  end
+end
+```
+
+**Return Values**: 
+- Without a block: `call` returns the result of the `process` method
+- With a block: `call` returns the result of the `process` method, and yields the service instance to the block
+
+```ruby
+# Without block - returns process result directly
+user = CreateUserService.call(name: "John", email: "john@example.com")
+# user is the User object (or nil if failed)
+
+# With block - still returns process result, but yields service for status checking
+user = CreateUserService.call(name: "John", email: "john@example.com") do |service|
+  if service.errors?
+    # Handle errors using service.errors
+  end
+end
+# user is still the User object (or nil if failed)
 ```
 
 ### Service with Validations
