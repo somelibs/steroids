@@ -13,6 +13,9 @@
 - [Error Handling](#error-handling)
 - [Controller Integration](#controller-integration)
 - [Async Services](#async-services)
+- [Serializers (Deprecated)](#serializers-deprecated)
+- [Error Classes](#error-classes)
+- [Logger](#logger)
 - [Extensions](#extensions)
 - [Testing](#testing)
 - [Configuration](#configuration)
@@ -305,6 +308,213 @@ AsyncService.call(user: current_user)
 
 # ✅ CORRECT - Pass serializable data
 AsyncService.call(user_id: current_user.id)
+```
+
+## Serializers (Deprecated)
+
+> **⚠️ DEPRECATION WARNING:** The Serializers module will be removed in the next major version. Consider using [ActiveModel::Serializer](https://github.com/rails-api/active_model_serializers) or [Blueprinter](https://github.com/procore/blueprinter) directly.
+
+Steroids provides a thin wrapper around ActiveModel::Serializer:
+
+```ruby
+class UserSerializer < Steroids::Serializers::Base
+  attributes :id, :name, :email, :role
+  has_many :posts
+  
+  def custom_attribute
+    object.some_computed_value
+  end
+end
+
+# Usage
+serializer = UserSerializer.new(user)
+serializer.to_json
+```
+
+## Error Classes
+
+Steroids provides a comprehensive error hierarchy with HTTP status codes and logging capabilities.
+
+### Base Error Class
+
+```ruby
+class CustomError < Steroids::Errors::Base
+  self.default_message = "Something went wrong"
+  self.default_status = :internal_server_error
+end
+
+# Usage with various options
+raise CustomError.new("Specific error message")
+raise CustomError.new(
+  message: "Error occurred",
+  status: :bad_request,
+  code: "ERR_001",
+  cause: original_exception,
+  context: { user_id: 123 },
+  log: true  # Automatically log the error
+)
+
+# Access error properties
+begin
+  # some code
+rescue CustomError => e
+  e.message     # Error message
+  e.status      # HTTP status symbol
+  e.code        # Custom error code
+  e.cause       # Original exception if any
+  e.context     # Additional context
+  e.timestamp   # When the error occurred
+end
+```
+
+### Pre-defined HTTP Error Classes
+
+```ruby
+# 400 Bad Request
+raise Steroids::Errors::BadRequestError.new("Invalid parameters")
+
+# 401 Unauthorized
+raise Steroids::Errors::UnauthorizedError.new("Please login")
+
+# 403 Forbidden
+raise Steroids::Errors::ForbiddenError.new("Access denied")
+
+# 404 Not Found
+raise Steroids::Errors::NotFoundError.new("Resource not found")
+
+# 409 Conflict
+raise Steroids::Errors::ConflictError.new("Resource already exists")
+
+# 422 Unprocessable Entity
+raise Steroids::Errors::UnprocessableEntityError.new("Validation failed")
+
+# 500 Internal Server Error
+raise Steroids::Errors::InternalServerError.new("Server error")
+
+# 501 Not Implemented
+raise Steroids::Errors::NotImplementedError.new("Feature coming soon")
+```
+
+### Error Serialization
+
+Errors can be serialized for API responses:
+
+```ruby
+class ApiController < ApplicationController
+  rescue_from Steroids::Errors::Base do |error|
+    render json: error.to_json, status: error.status
+  end
+end
+```
+
+### Error Context and Logging
+
+```ruby
+# Add context for debugging
+error = Steroids::Errors::BadRequestError.new(
+  "Invalid input",
+  context: {
+    user_id: current_user.id,
+    params: params.to_unsafe_h,
+    timestamp: Time.current
+  },
+  log: true  # Will automatically log with Steroids::Logger
+)
+
+# Manual logging
+error.log!  # Logs the error with full backtrace
+```
+
+## Logger
+
+Steroids provides an enhanced logger with colored output, backtrace formatting, and error notification support.
+
+### Basic Usage
+
+```ruby
+# Simple logging
+Steroids::Logger.print("Operation completed")
+Steroids::Logger.print("Warning message", verbosity: :concise)
+
+# Logging exceptions
+begin
+  risky_operation
+rescue => e
+  Steroids::Logger.print(e)  # Automatically detects error level
+end
+```
+
+### Verbosity Levels
+
+```ruby
+# Full backtrace (default for exceptions)
+Steroids::Logger.print(exception, verbosity: :full)
+
+# Concise backtrace (app code only)
+Steroids::Logger.print(exception, verbosity: :concise)
+
+# No backtrace
+Steroids::Logger.print(exception, verbosity: :none)
+```
+
+### Format Options
+
+```ruby
+# Decorated output with colors (default)
+Steroids::Logger.print("Message", format: :decorated)
+
+# Raw output without colors
+Steroids::Logger.print("Message", format: :raw)
+```
+
+### Automatic Log Levels
+
+The logger automatically determines the appropriate log level:
+
+- **`:error`** - For `StandardError`, `InternalServerError`, `GenericError`
+- **`:warn`** - For other `Steroids::Errors::Base` subclasses
+- **`:info`** - For regular messages
+
+### Error Notifications
+
+Configure a notifier to receive alerts for errors:
+
+```ruby
+# In an initializer
+Steroids::Logger.notifier = lambda do |error|
+  # Send to error tracking service
+  Bugsnag.notify(error)
+  # Or send to Slack
+  SlackNotifier.alert(error.message)
+end
+```
+
+### Colored Output
+
+The logger uses Rainbow for colored terminal output:
+
+- 🔴 **Red** - Errors
+- 🟡 **Yellow** - Warnings
+- 🟢 **Green** - Info messages
+- 🟣 **Magenta** - Error class names and quiet logs
+
+### Integration with Services
+
+Services automatically use the logger for error handling:
+
+```ruby
+class MyService < Steroids::Services::Base
+  def process
+    Steroids::Logger.print("Starting process")
+    
+    perform_operation
+    
+    Steroids::Logger.print("Process completed")
+  rescue => e
+    Steroids::Logger.print(e)  # Full error logging with backtrace
+    errors.add("Process failed", e)
+  end
+end
 ```
 
 ## Extensions
