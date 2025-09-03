@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    steroids (1.5.0)
+    steroids (1.6.0)
       rails (>= 7)
       rainbow (>= 3.1)
 

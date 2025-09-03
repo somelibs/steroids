@@ -71,7 +71,7 @@ class ServicableMethodsTest < ActiveSupport::TestCase
     @controller.create_user(name: "John") do |service, outcome, **options|
       block_called = true
       # First param is a hash with :noticable key
-      noticable = service[:noticable] if service.is_a?(Hash)
+      noticable = options[:noticable]
       service_instance = noticable
       
       if noticable && noticable.success?
@@ -88,7 +88,7 @@ class ServicableMethodsTest < ActiveSupport::TestCase
   test "service with errors can be handled in block" do
     @controller.create_user(name: "") do |service, outcome, **options|
       # First param is a hash with :noticable key
-      noticable = service[:noticable] if service.is_a?(Hash)
+      noticable = options[:noticable]
       if noticable && noticable.errors?
         @controller.render :new, alert: noticable.errors.full_messages
       end

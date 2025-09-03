@@ -108,11 +108,9 @@ class BaseServiceTest < ActiveSupport::TestCase
     assert_equal 6, result  # 3 * 2
     
     # To check success, use the block pattern
-    SuccessfulService.call(value: 3) do |service|
+    SuccessfulService.call(value: 3) do |service,**options|
       # First param is a hash with :noticable key containing the NoticableRuntime
-      if service.is_a?(Hash) && service[:noticable]
-        assert service[:noticable].success?
-      end
+      assert options[:noticable].success?
     end
   end
   
@@ -144,11 +142,9 @@ class BaseServiceTest < ActiveSupport::TestCase
     service = ExceptionService.new
     rescued = false
     
-    service.call do |svc|
+    service.call do |service,**options|
       # The block receives a hash with :noticable key containing the NoticableRuntime
-      if svc.is_a?(Hash) && svc[:noticable]
-        rescued = true if svc[:noticable].errors?
-      end
+      rescued = true if options[:noticable].errors?
     end
     
     assert rescued

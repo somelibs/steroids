@@ -63,8 +63,7 @@ class ComprehensiveServiceTest < ActiveSupport::TestCase
     error_shown = false
     
     CreateUserService.call(name: "Jane", email: "jane@example.com") do |service, outcome, **options|
-      # First param is a hash with :noticable key
-      noticable = service[:noticable] if service.is_a?(Hash)
+      noticable = options[:noticable]
       if noticable && noticable.success?
         redirected = true
         assert_equal "User created successfully", noticable.notice
@@ -81,8 +80,7 @@ class ComprehensiveServiceTest < ActiveSupport::TestCase
     alert_message = nil
     
     CreateUserService.call(name: "Jane", email: "") do |service, outcome, **options|
-      # First param is a hash with :noticable key  
-      noticable = service[:noticable] if service.is_a?(Hash)
+      noticable = options[:noticable]
       if noticable && noticable.errors?
         alert_message = noticable.errors.full_messages
       end
@@ -164,9 +162,9 @@ class ComprehensiveServiceTest < ActiveSupport::TestCase
     service = LifecycleService.new(should_fail: true)
     
     # With block, exception is rescued
-    service.call do |svc, outcome, **options|
+    service.call do |service, outcome, **options|
       # First param is a hash with :noticable key
-      noticable = svc[:noticable] if svc.is_a?(Hash)
+      noticable = options[:noticable]
       assert noticable.errors? if noticable
       assert_includes noticable.errors.full_messages, "Rescued: Failed intentionally" if noticable
     end
@@ -325,7 +323,7 @@ class ComprehensiveServiceTest < ActiveSupport::TestCase
     def handle_create(name:, email:)
       user = create_user(name: name, email: email) do |service, outcome, **options|
         # First param is a hash with :noticable key
-        noticable = service[:noticable] if service.is_a?(Hash)
+        noticable = options[:noticable]
         if noticable && noticable.success?
           @redirected_to = "/users"
           @notice = noticable.notice

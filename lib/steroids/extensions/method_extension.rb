@@ -16,11 +16,11 @@ module Steroids
         return given_arguments if self.rest?
 
         expected_arguments_count = self.least_arguments.count
-        non_nil_arguments_count = given_arguments.take_while(&:present?).count
-        applied_arguments = given_arguments.first([expected_arguments_count, non_nil_arguments_count].min)
+        non_nil_given_arguments_count = given_arguments.take_while(&:present?).count
+        applied_arguments = given_arguments.first([expected_arguments_count, non_nil_given_arguments_count].max)
         return applied_arguments if self.spread? && self.options.any?
 
-        applied_arguments << given_options if applied_arguments.count < self.arguments.count
+        applied_arguments << given_options if applied_arguments.count < self.arguments.count && given_options.any?
         applied_arguments
       end
 
