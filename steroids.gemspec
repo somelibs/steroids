@@ -8,7 +8,7 @@ require "steroids/version"
 Gem::Specification.new do | spec |
   spec.name        = "steroids"
   spec.version     = Steroids::VERSION
-  spec.date        = "2025-09-01"
+  spec.date        = "2025-09-03"
   spec.summary     = "Steroids - Rails helpers"
   spec.description = spec.summary
   spec.authors     = ["Paul Reboh"]

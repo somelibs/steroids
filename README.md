@@ -1,6 +1,6 @@
 # Steroids
 
-[![Gem Version](https://img.shields.io/badge/version-1.6.0-green)](https://rubygems.org/gems/steroids)
+[![Gem Version](https://img.shields.io/badge/version-1.6.1-green)](https://rubygems.org/gems/steroids)
 [![Rails](https://img.shields.io/badge/Rails-%3E%3D%207.1-red)](https://rubyonrails.org/)
 [![Ruby](https://img.shields.io/badge/Ruby-%3E%3D%203.0-red)](https://www.ruby-lang.org/)
 [![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)](https://github.com/somelibs/steroids)
