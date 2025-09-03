@@ -72,19 +72,41 @@ class CreateUserService < Steroids::Services::Base
     )
     
     UserMailer.welcome(user).deliver_later
-    user
+    user  # Return value becomes the service call result
   rescue ActiveRecord::RecordInvalid => e
     errors.add("Failed to create user: #{e.message}", e)
+    nil  # Return nil on failure
+  end
+end
+```
+
+### Usage Patterns
+
+```ruby
+# Method 1: Direct call with block (RECOMMENDED for controllers)
+CreateUserService.call(name: "John", email: "john@example.com") do |service|
+  if service.success?
+    redirect_to users_path, notice: service.notice
+  else
+    flash.now[:alert] = service.errors.full_messages
+    render :new
   end
 end
 
-# Usage
-service = CreateUserService.call(name: "John", email: "john@example.com")
+# Method 2: Get return value directly
+user = CreateUserService.call(name: "John", email: "john@example.com")
+# user is the return value from process method (User object or nil)
+
+# Method 3: Check service instance
+service = CreateUserService.new(name: "John", email: "john@example.com")
+result = service.call
 
 if service.success?
   puts service.notice  # => "User created successfully"
+  # result contains the User object
 else
-  puts service.errors.full_messages  # => "Failed to create user: ..."
+  puts service.errors.full_messages
+  # result is nil
 end
 ```
 
@@ -265,7 +287,7 @@ end
 
 ## Async Services
 
-Services can run asynchronously using Sidekiq.
+Services can run asynchronously using Sidekiq. **Important:** In development, test environments, and Rails console, async services automatically run synchronously for easier debugging.
 
 ### Defining an Async Service
 
@@ -288,11 +310,27 @@ class SendNewsletterService < Steroids::Services::Base
   end
 end
 
-# This runs in background
+# Behavior varies by environment:
+# - Production with Sidekiq running: Runs in background
+# - Development/Test/Console: Runs synchronously (immediate execution)
 SendNewsletterService.call(subject: "Weekly Update", content: "...")
 
-# Force synchronous execution
+# Force synchronous execution in any environment
 SendNewsletterService.call(subject: "Test", content: "...", async: false)
+```
+
+### Async Execution Logic
+
+The service automatically determines execution mode based on:
+
+```ruby
+# Runs async when ALL conditions are met:
+# 1. Sidekiq is running (workers available)
+# 2. NOT in Rails console
+# 3. NOT in development (unless Sidekiq is running)
+# 4. async: true (default)
+
+# Otherwise runs synchronously for easier debugging
 ```
 
 ### Important Notes for Async Services
@@ -300,7 +338,8 @@ SendNewsletterService.call(subject: "Test", content: "...", async: false)
 1. **Parameters must be serializable** (strings, numbers, hashes, arrays)
 2. **Don't pass ActiveRecord objects** - pass IDs instead
 3. **Use `async_process` method** instead of `process`
-4. **Runs via `AsyncServiceJob`** with Sidekiq
+4. **Runs via `AsyncServiceJob`** with Sidekiq in production
+5. **Auto-synchronous in dev/test** for easier debugging
 
 ```ruby
 # ❌ WRONG - AR object won't serialize
@@ -649,17 +688,94 @@ end
 
 ### Local Development
 
-When developing locally with a Rails application:
+When developing Steroids locally alongside a Rails application, you can use Bundler's local gem override:
 
 ```bash
-# Point to local gem development
+# Point Bundler to your local Steroids repository
 $ bundle config local.steroids /path/to/local/steroids
+
+# Example:
+$ bundle config local.steroids ~/Projects/steroids
+
+# Verify the configuration
+$ bundle config
+# Should show: local.steroids => "/path/to/local/steroids"
+
+# Install/update dependencies
+$ bundle install
+```
+
+Now your Rails app will use the local version of Steroids. Any changes you make to the gem will be reflected immediately (after restarting Rails).
+
+To remove the local override:
+
+```bash
+$ bundle config --delete local.steroids
+$ bundle install
 ```
 
 ### Running Tests
 
+Steroids uses Minitest for testing. The test suite includes comprehensive coverage of:
+- Service objects and lifecycle
+- Noticable methods (error/notice handling)
+- Controller integration (servicable methods)
+- Error classes and logging
+- Async services
+
+#### Run All Tests
+
 ```bash
+# Using Rake (recommended)
 $ bundle exec rake test
+
+# With verbose output
+$ bundle exec rake test TESTOPTS="--verbose"
+```
+
+#### Run Specific Test Files
+
+```bash
+# Test services
+$ bundle exec rake test TEST=test/services/base_service_test.rb
+$ bundle exec rake test TEST=test/services/async_service_test.rb
+
+# Test support modules
+$ bundle exec rake test TEST=test/support/noticable_methods_test.rb
+$ bundle exec rake test TEST=test/support/servicable_methods_test.rb
+
+# Test errors
+$ bundle exec rake test TEST=test/errors/base_error_test.rb
+
+# Main module test
+$ bundle exec rake test TEST=test/steroids_test.rb
+```
+
+#### Run Tests by Pattern
+
+```bash
+# Run all service tests
+$ bundle exec rake test TEST="test/services/*"
+
+# Run multiple specific tests
+$ bundle exec rake test TEST="test/services/base_service_test.rb,test/support/noticable_methods_test.rb"
+```
+
+#### Test Coverage
+
+To check test coverage (requires simplecov gem):
+
+```bash
+# Add to Gemfile (test group)
+gem 'simplecov', require: false
+
+# Add to test_helper.rb (at the top)
+require 'simplecov'
+SimpleCov.start 'rails'
+
+# Run tests and generate coverage report
+$ bundle exec rake test
+# Coverage report will be in coverage/index.html
 ```
 
 ## Troubleshooting

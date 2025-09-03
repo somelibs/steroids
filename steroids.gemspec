@@ -14,7 +14,7 @@ Gem::Specification.new do | spec |
   spec.authors     = ["Paul Reboh"]
   spec.email       = "paul@reboh.net"
   spec.homepage    = "https://github.com/somelibs/steroids"
-  spec.required_ruby_version = ">= 3.3.0"
+  spec.required_ruby_version = ">= 3.0.0"
 
   if spec.respond_to?(:metadata)
     spec.metadata["allowed_push_host"] = ""

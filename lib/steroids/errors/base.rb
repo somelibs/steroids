@@ -11,7 +11,7 @@ module Steroids
       class_attribute :default_status, default: :internal_server_error
 
       attr_reader :id, :message, :cause, :code, :status, :errors,
-                      :quote, :record, :context, :timestamp, :logged
+                      :record, :context, :timestamp, :logged
 
       def initialize(message_string = nil, **options)
         @caller = caller

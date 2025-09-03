@@ -12,7 +12,7 @@ module Steroids
       core_extensions = File.expand_path("#{gem_path}/steroids/extensions/**/**/*.rb", __dir__)
       extensions_dir = Dir.glob(core_extensions)
       Dir.glob(extensions_dir).sort.each do |path|
-        load path
+        require path
       end
     end
 

@@ -38,13 +38,13 @@ module Steroids
 
       def assert_color(level)
         case level
-          when :error
-            :red
-          when :warn
-            :yellow
-          when :info
-            :green
-          end
+        when :error
+          :red
+        when :warn
+          :yellow
+        when :info
+          :green
+        end
       end
 
       def assert_backtrace(input, verbosity)

@@ -8,7 +8,6 @@ module Steroids
       private
 
       def mixin(method_name)
-        class_name = grundclass.name.split("::").last rescue nil
         if grundclass.methods.include?(method_name)
           grundclass.define_method(method_name) do |*args|
             self.class.send(method_name, *args)

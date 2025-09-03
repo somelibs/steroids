@@ -34,7 +34,7 @@ module Steroids
                 when /^[-+]?[1-9]([0-9]*)?$/
                   options[:params][key] = Integer(value)
               end
-            rescue => exception
+            rescue
             end
           end
           options

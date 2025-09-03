@@ -17,3 +17,6 @@ gemspec
 gem "rails", "~> 7.1"
 gem "rainbow", "~> 3.1", ">= 3.1.1"
 gem "active_model_serializers", "~> 0.10.14"
+
+# Test dependencies
+gem "sqlite3", "~> 1.4", group: [:development, :test]

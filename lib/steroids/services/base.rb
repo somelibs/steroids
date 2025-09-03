@@ -78,8 +78,9 @@ module Steroids
       end
 
       def async_exec?(async)
-        !!if async == true && (Sidekiq::ProcessSet.new.any? || !Rails.env.development?)
-          !(Rails.env.development? || Rails.const_defined?(:Console))
+        development_env = Rails.env.development? || Rails.env.test?
+        !!if async == true && (Sidekiq::ProcessSet.new.any? || !development_env)
+          !(development_env || Rails.const_defined?(:Console))
         end
       end
 
@@ -130,9 +131,6 @@ module Steroids
       end
 
       class << self
-        attr_accessor :steroids_before_callbacks
-        attr_accessor :steroids_after_callbacks
-
         def async?
           self.private_instance_methods.include?(:async_process) || self.instance_methods.include?(:async_process)
         end
