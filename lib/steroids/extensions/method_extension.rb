@@ -5,6 +5,7 @@ module Steroids
       # Calling
       # --------------------------------------------------------------------------------------------
 
+      # TODO: Use *arguments.extract_options instead!
       def apply(*given_arguments, **given_options, &block)
         applied_arguments = dynamic_arguments_for(given_arguments, given_options)
         applied_options = dynamic_options_for(given_options)
