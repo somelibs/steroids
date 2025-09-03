@@ -723,15 +723,12 @@ end
 When developing Steroids locally alongside a Rails application, you can use Bundler's local gem override:
 
 ```bash
-# Point Bundler to your local Steroids repository
-$ bundle config local.steroids /path/to/local/steroids
-
-# Example:
-$ bundle config local.steroids ~/Projects/steroids
+# Point Bundler to your local Steroids git repository
+$ bundle config local.steroids /path/to/local/git/repository
 
 # Verify the configuration
 $ bundle config
-# Should show: local.steroids => "/path/to/local/steroids"
+# Should show: local.steroids => "/path/to/local/git/repository"
 
 # Install/update dependencies
 $ bundle install
