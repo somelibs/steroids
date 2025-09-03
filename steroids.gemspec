@@ -14,10 +14,11 @@ Gem::Specification.new do | spec |
   spec.authors     = ["Paul Reboh"]
   spec.email       = "paul@reboh.net"
   spec.homepage    = "https://github.com/somelibs/steroids"
+  spec.license     = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
 
   if spec.respond_to?(:metadata)
-    spec.metadata["allowed_push_host"] = ""
+    spec.metadata["allowed_push_host"] = "https://rubygems.org"
   else
     raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
   end

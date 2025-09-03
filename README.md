@@ -823,6 +823,12 @@ $ bundle exec rake test
 **Issue:** Transaction rollback not working
 **Solution:** Ensure `wrap_in_transaction` is not disabled
 
+**Issue:** `force` flag not preventing service from dropping
+**Solution:** The `force: true` option may not work as expected in all cases. Currently, the force flag behavior is being reviewed.
+
+**Issue:** `skip_callbacks` option not working properly
+**Solution:** The `skip_callbacks: true` option may not skip all callbacks as expected. This is a known limitation being addressed.
+
 ## Roadmap
 
 - [ ] Standalone testing with dummy Rails app
