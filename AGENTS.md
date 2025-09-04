@@ -1,6 +1,6 @@
-# CLAUDE.md - Steroids Rails Enhancement Gem
+# AGENTS.md - Steroids Rails Enhancement Gem
 
-This file provides guidance to Claude Code when working with the Steroids gem.
+This file provides guidance to AI Agents when working with code in this repository.
 
 ## Overview
 
@@ -52,17 +52,17 @@ The base service class provides a robust pattern for business logic:
 ```ruby
 class MyService < Steroids::Services::Base
   success_notice "Operation completed successfully"
-  
+
   def initialize(user:, data:)
     @user = user
     @data = data
   end
-  
+
   def process
     # Synchronous processing
     perform_operation
   end
-  
+
   # OR for async:
   def async_process
     # Asynchronous processing (runs in background job)
@@ -106,7 +106,7 @@ errors.add("Failed to sync", exception)      # With optional exception
 ```ruby
 class SyncService < Steroids::Services::Base
   success_notice "Sync completed successfully"
-  
+
   def process
     begin
       sync_data
@@ -114,7 +114,7 @@ class SyncService < Steroids::Services::Base
       errors.add("Failed to sync data", e)  # NOT :base, just the message!
       return
     end
-    
+
     if validation_failed?
       errors.add("Validation failed")       # Just a string message
     end
@@ -131,24 +131,24 @@ class MyService < Steroids::Services::Base
   def process
     # Drop/halt execution on error
     drop!("Operation failed") if condition_failed?
-    
+
     # Or with explicit message:
     drop!(message: "Custom failure message")
-    
+
     # Errors are automatically collected
     errors.add("This failed")
     # If errors.any? is true after process, service automatically drops
   end
-  
+
   # Callbacks
   before_process :validate_inputs
   after_process :cleanup
-  
+
   # Rescue and ensure hooks
   def rescue!(exception)
     # Handle exceptions
   end
-  
+
   def ensure!
     # Always runs
   end
@@ -183,7 +183,7 @@ Controller integration via `service` macro:
 ```ruby
 class UsersController < ApplicationController
   service :create_user, class_name: "Users::CreateService"
-  
+
   def create
     create_user(user_params) do |service|
       if service.success?
@@ -234,20 +234,20 @@ array.cast(value)  # Ensure value is in array
 ```ruby
 class CreateOrderService < Steroids::Services::Base
   success_notice "Order created successfully"
-  
+
   def initialize(user:, items:)
     @user = user
     @items = items
   end
-  
+
   def process
     # Automatically wrapped in transaction
     order = Order.create!(user: @user)
-    
+
     @items.each do |item|
       order.line_items.create!(item)
     end
-    
+
     order
   rescue ActiveRecord::RecordInvalid => e
     errors.add("Failed to create order", e)  # Remember: just strings!
@@ -263,13 +263,13 @@ class UpdateProfileService < Steroids::Services::Base
     @user = user
     @params = params
   end
-  
+
   def process
     unless @params[:email].present?
       errors.add("Email is required")
       return
     end
-    
+
     @user.update!(email: @params[:email])
   rescue => e
     errors.add("Update failed", e)
@@ -283,7 +283,7 @@ end
 # RSpec example
 RSpec.describe MyService do
   subject { described_class.new(param: value) }
-  
+
   context "when successful" do
     it "returns success" do
       subject.call
@@ -291,7 +291,7 @@ RSpec.describe MyService do
       expect(subject.notice).to eq("Operation completed successfully")
     end
   end
-  
+
   context "when failed" do
     it "has errors" do
       subject.call
