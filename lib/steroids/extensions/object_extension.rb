@@ -75,6 +75,19 @@ module Steroids
       end
 
       # --------------------------------------------------------------------------------------------
+      # Support for class_extension attributes
+      # --------------------------------------------------------------------------------------------
+
+      def freeze
+        if self.class.respond_to?(:steroids_attributes_set)
+          self.class.steroids_attributes_set&.each do |attribute_name|
+            self.send(attribute_name)
+          end
+        end
+        super
+      end
+
+      # --------------------------------------------------------------------------------------------
       # Serialization
       # --------------------------------------------------------------------------------------------
 

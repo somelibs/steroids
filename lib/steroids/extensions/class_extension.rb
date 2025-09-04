@@ -2,6 +2,48 @@ module Steroids
   module Extensions
     module ClassExtension
       # --------------------------------------------------------------------------------------------
+      # Attributes
+      # --------------------------------------------------------------------------------------------
+
+      attr_reader :steroids_attributes_set
+
+      def attribute(attribute_name, default: nil, type: nil, allow_nil: false)
+        reference_steroids_attributes(attribute_name)
+        expected_type = type.present? && type.constantize
+        instance_variable_name = :"@#{attribute_name}"
+        has_been_set = false
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Define reader
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # TODO: Alternatively to overriding freeze: method could return default if frozen, without
+        # setting the actual instance variable.
+        self.define_method(attribute_name) do
+          unless instance_variable_get(instance_variable_name) || has_been_set || self.frozen?
+            typed_and_nil = default.nil? && !!allow_nil
+            default_value = expected_type.present? && !typed_and_nil ? default.typed!(expected_type) : default
+            instance_variable_set(instance_variable_name, default_value)
+          end
+          instance_variable_get(instance_variable_name)
+        end
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Define writter
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        self.define_method(:"#{attribute_name}=") do |next_value|
+          typed_and_nil = next_value.nil? && !!allow_nil
+          value = expected_type.present? && !typed_and_nil ? next_value.typed!(expected_type) : next_value
+          has_been_set = true
+          instance_variable_set(instance_variable_name, value)
+        end
+      end
+
+      private def reference_steroids_attributes(attribute_name)
+        @steroids_attributes_set ||= Array.new
+        @steroids_attributes_set << attribute_name
+      end
+
+      # --------------------------------------------------------------------------------------------
       # Methods
       # --------------------------------------------------------------------------------------------
 
@@ -113,7 +155,7 @@ module Steroids
 
       def build_anonymous(name, **options, &block)
         parent_class = options.fetch(:inherit, nil) || Class.new
-        class_name = name.camelize
+        class_name = name.to_s.camelize
         self.new(parent_class) do
           include Module.new(&block)
 
