@@ -6,14 +6,15 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def instance_apply(*given_arguments, **given_options, &block)
-        applied_arguments = dynamic_arguments_for(block, given_arguments)
-        applied_options = dynamic_options_for(block, given_options)
+        applied_arguments = block.dynamic_arguments_for(given_arguments, given_options)
+        applied_options = block.dynamic_options_for(given_options)
         self.instance_exec(*applied_arguments, **applied_options, &block)
       end
 
       # TODO: Rename to try_apply and implement/alias try_send
       def send_apply(method_name, *given_arguments, **given_options, &block)
         return unless respond_to?(method_name, true)
+
         method = method(method_name)
         applied_arguments = method.dynamic_arguments_for(given_arguments, given_options)
         applied_options = method.dynamic_options_for(given_options)

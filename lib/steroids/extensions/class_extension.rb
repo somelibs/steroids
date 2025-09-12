@@ -94,8 +94,12 @@ module Steroids
         respond_to_hander = options.fetch(:if)
         return unless self.instance_methods.include?(method_name) && respond_to_hander.present?
 
+        define_method(:respond_to_missing?) do |missing_method_name, include_private = false|
+          !!self.send(respond_to_hander, missing_method_name) || super(missing_method_name, include_private)
+        end
+
         define_method(:method_missing) do |missing_method_name, *arguments, **options, &block|
-          if self.send_apply(respond_to_hander, missing_method_name)
+          if self.send(respond_to_hander, missing_method_name)
             self.send_apply(method_name, missing_method_name)
           else
             super(missing_method_name, *arguments, **options, &block)
