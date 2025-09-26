@@ -1,6 +1,8 @@
 module Steroids
   module Extensions
     module ClassExtension
+      module Anonymous; end
+
       # --------------------------------------------------------------------------------------------
       # Attributes
       # --------------------------------------------------------------------------------------------
@@ -95,7 +97,7 @@ module Steroids
         return unless self.instance_methods.include?(method_name) && respond_to_hander.present?
 
         define_method(:respond_to_missing?) do |missing_method_name, include_private = false|
-          !!self.send(respond_to_hander, missing_method_name) || super(missing_method_name, include_private)
+          !!(self.send(respond_to_hander, missing_method_name) || super(missing_method_name, include_private))
         end
 
         define_method(:method_missing) do |missing_method_name, *arguments, **options, &block|
@@ -123,14 +125,6 @@ module Steroids
       end
 
       # --------------------------------------------------------------------------------------------
-      # Naming
-      # --------------------------------------------------------------------------------------------
-
-      def own_klass_name
-        self.name.split('::').last
-      end
-
-      # --------------------------------------------------------------------------------------------
       # Anonymous class building
       # --------------------------------------------------------------------------------------------
 
@@ -152,13 +146,12 @@ module Steroids
           end
 
           define_method(:respond_to_missing?) do |missing_method_name, *arguments, **options, &block|
-            !!instance.respond_to?(missing_method_name, true)
+            !!(instance.respond_to?(missing_method_name, true))
           end
         end.new
       end
 
-      def build_anonymous(name, **options, &block)
-        parent_class = options.fetch(:inherit, nil) || Class.new
+      def build_anonymous(name, parent_class, &block)
         class_name = name.to_s.camelize
         self.new(parent_class) do
           include Module.new(&block)
@@ -174,10 +167,8 @@ module Steroids
           define_singleton_method(:to_s) do
             self.inspect
           end
-
-          define_singleton_method(:anonymous?) do
-            true
-          end
+        end.tap do |klass|
+          parent_class.const_set(class_name, klass)
         end
       end
     end
