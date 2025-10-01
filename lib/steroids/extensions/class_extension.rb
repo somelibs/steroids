@@ -152,23 +152,34 @@ module Steroids
       end
 
       def build_anonymous(name, parent_class, &block)
-        class_name = name.to_s.camelize
+        full_namespace = name.to_s.camelize
+        class_name = full_namespace.demodulize
         self.new(parent_class) do
-          include Module.new(&block)
-
           define_singleton_method(:name) do
             class_name
           end
 
           define_singleton_method(:inspect) do
-            super().gsub("#<Class:", "#<Anonymous:#{class_name}:")
+            super().gsub("#<#<Class:", "#<#<Anonymous:#{full_namespace}:")
+          end
+
+          define_method(:inspect) do
+            super().gsub("#<#<Class:", "#<#<Anonymous:#{full_namespace}:")
           end
 
           define_singleton_method(:to_s) do
             self.inspect
           end
+
+          define_singleton_method(:anonymous?) do
+            true
+          end
+
+          include Module.new(&block)
         end.tap do |klass|
-          parent_class.const_set(class_name, klass)
+          parent_module_name = full_namespace.split("::")[..-2].join("::").presence
+          namespace = parent_module_name ? Object.create_namespace(parent_module_name) : self
+          namespace.const_set(class_name, klass) unless self&.const_defined?(class_name)
         end
       end
     end

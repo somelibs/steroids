@@ -32,7 +32,9 @@ module Steroids
           @collection = []
         end
 
-        def add(message, exception = nil)
+        def add(message_or_exception, exception_or_nil = nil)
+          message = message_or_exception.is_a?(Exception) ? message_or_exception.message : message_or_exception
+          exception = message_or_exception.is_a?(Exception) ? nil : exception_or_nil
           nil.tap do
             @collection << {
               message: message.typed!(String),
@@ -58,6 +60,8 @@ module Steroids
             end.join("\n").presence
           end
         end
+
+        alias_method :messages, :full_messages
       end
 
       # --------------------------------------------------------------------------------------------

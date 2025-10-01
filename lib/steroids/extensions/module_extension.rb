@@ -5,6 +5,22 @@ module Steroids
         self.singleton_class? ? ObjectSpace.each_object(self).to_a.last : self
       end
 
+      def create_namespace(namespace, value = nil)
+        namespace = namespace.to_s.sub(/^::/, '')
+        modules = namespace.split('::')
+        return self if modules.empty?
+
+        module_name = modules.first
+        nested_modules = modules[1..].join('::')
+        current_module = if self.const_defined?(module_name, false)
+          self.const_get(module_name)
+        else
+          self.const_set(module_name, Module.new)
+        end
+
+        nested_modules.empty? ? current_module : current_module.create_namespace(nested_modules, value)
+      end
+
       private
 
       def mixin(method_name)
