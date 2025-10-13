@@ -17,7 +17,11 @@ module Steroids
 
         expected_arguments_count = self.least_arguments.count
         non_nil_given_arguments_count = given_arguments.take_while(&:present?).count
-        applied_arguments = given_arguments.first([expected_arguments_count, non_nil_given_arguments_count].max)
+        applied_arguments = if self.is_a?(Proc)
+          given_arguments.first([expected_arguments_count, non_nil_given_arguments_count].max)
+        else
+          given_arguments.first([expected_arguments_count, non_nil_given_arguments_count].min)
+        end
         return applied_arguments if self.spread? && self.options.any?
 
         applied_arguments << given_options if applied_arguments.count < self.arguments.count && given_options.any?

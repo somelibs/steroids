@@ -20,12 +20,11 @@ module Steroids
       class_methods do
         def service(service_name, class_name:, **class_options)
           define_method service_name do | *args, **options, &block |
-            service_options = service_context_for({ **class_options, **options })
+            service_options = service_context_for(options)
             service_block = block.present? ? block : noticable_binding
-            Object.const_get(class_name).new(
-              *args,
-              **service_options
-            ).call(**options, &service_block)
+            service_class = Object.const_get(class_name)
+            instance = service_class.new(*args, **service_options)
+            instance.call({ **class_options, **options }, &service_block)
           end
         end
       end
