@@ -6,6 +6,8 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def instance_apply(*given_arguments, **given_options, &block)
+        return unless block_given?
+
         applied_arguments = block.dynamic_arguments_for(given_arguments, given_options)
         applied_options = block.dynamic_options_for(given_options)
         self.instance_exec(*applied_arguments, **applied_options, &block)

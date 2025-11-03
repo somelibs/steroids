@@ -16,7 +16,7 @@ module Steroids
         return given_arguments if self.rest?
 
         expected_arguments_count = self.least_arguments.count
-        applied_arguments = if self.is_a?(Proc)
+        applied_arguments = if self.is_a?(Proc) && !self.lambda?
           given_arguments.first([expected_arguments_count, given_arguments.size].max)
         else
           given_arguments.first([expected_arguments_count, given_arguments.size].min)
