@@ -9,7 +9,7 @@ module Steroids
         include Support::ServicableMethods
 
         def context
-          Rails.logger.warn('Using context is deprecated and will be removed.') unless Rails.env.production?
+          # Using context is deprecated and will be removed.
           @context ||= ActiveSupport::HashWithIndifferentAccess.new
         end
       end
