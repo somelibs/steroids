@@ -20,15 +20,18 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def call(*args, **options, &block)
+        outcome = nil
         return unless process_method.present?
 
         @steroids_force = (!!options[:force]) || false
         @steroids_skip_callbacks = (!!options[:skip_callbacks]) || @@skip_callbacks || false
         if process_method.name == :async_process
-          schedule_process(*args, **options, &block)
+          outcome = schedule_process(*args, **options, &block)
         else
-          exec_process(*args, **options, &block)
+          outcome = exec_process(*args, **options, &block)
         end
+      ensure
+        block.apply(self, outcome, noticable: self.noticable) if block_given?
       end
 
       private
@@ -55,19 +58,20 @@ module Steroids
         end
       ensure
         ensure! if respond_to?(:ensure!, true)
-        block.apply(self, outcome, noticable: self.noticable) if block_given?
       end
 
       def schedule_process(*args, **options, &block)
         async_exec = (!!options[:async]) || true
         if self.respond_to?(:async_process, true)
-          if async_exec?(async_exec)
-            AsyncServiceJob.perform_later(
-              class_name: self.class.name,
-              params: @_steroids_serialized_init_options
-            )
-          else
-            exec_process(*args, **options, &block)
+          AsyncServiceJob.new(
+            class_name: self.class.name,
+            params: @_steroids_serialized_init_options
+          ).tap do |job|
+            if async_exec?(async_exec)
+              job.enqueue
+            else
+              exec_process(*args, **options, &block)
+            end
           end
         end
       end
