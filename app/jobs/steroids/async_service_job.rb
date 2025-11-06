@@ -1,6 +1,6 @@
 module Steroids
   class AsyncServiceJob < ApplicationJob
-    queue_as Rails.application.config.active_job.queue_adapter
+    queue_as :default
 
     def perform(class_name:, params:)
       service = class_name.constantize

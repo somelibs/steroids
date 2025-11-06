@@ -61,13 +61,13 @@ module Steroids
       end
 
       def schedule_process(*args, **options, &block)
-        async_exec = (!!options[:async]) || true
+        perform_async = !!(options[:async].ifnil(!Sidekiq.server?))
         if self.respond_to?(:async_process, true)
           AsyncServiceJob.new(
             class_name: self.class.name,
             params: @_steroids_serialized_init_options
           ).tap do |job|
-            if async_exec?(async_exec)
+            if async_exec?(perform_async)
               job.enqueue
             else
               exec_process(*args, **options, &block)
@@ -81,11 +81,9 @@ module Steroids
         @process_method ||= (try_method(:process) || try_method(:async_process))
       end
 
-      def async_exec?(async)
-        development_env = Rails.env.development? || Rails.env.test?
-        !!if async == true && (Sidekiq::ProcessSet.new.any? || !development_env)
-          !(development_env || Rails.const_defined?(:Console))
-        end
+      def async_exec?(perform_async)
+        dev = Rails.env.development? || Rails.env.test?
+        !!(perform_async == true && (Sidekiq::ProcessSet.new.any? || !dev))
       end
 
       # --------------------------------------------------------------------------------------------
