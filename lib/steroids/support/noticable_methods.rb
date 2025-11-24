@@ -17,6 +17,14 @@ module Steroids
       # notice can be either error (full message) or success_notice
 
       # --------------------------------------------------------------------------------------------
+      # Noticable exception
+      # --------------------------------------------------------------------------------------------
+
+      class RuntimeException < Steroids::Errors::Base
+        self.default_message = "Noticable runtime exception"
+      end
+
+      # --------------------------------------------------------------------------------------------
       # Noticable collection
       # --------------------------------------------------------------------------------------------
 
@@ -25,7 +33,7 @@ module Steroids
 
         attr_reader :collection
 
-        delegate :any?, :map, :each, :to_a, to: :collection
+        delegate :any?, :map, :each, :to_a, :find, to: :collection
 
         def initialize(collection_type)
           @collection_type = NOTICABLE_TYPES.cast(collection_type)
@@ -101,6 +109,14 @@ module Steroids
         def merge(noticable)
           @notices.merge(noticable.notices)
           @errors.merge(noticable.errors)
+        end
+
+        def to_exception
+          cause = @errors.find { |error| error[:exception].present? }
+          RuntimeException.new(
+            self.full_messages,
+            cause: cause.present? && cause[:exception]
+          ) if errors?
         end
 
         private

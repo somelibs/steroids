@@ -25,8 +25,8 @@ module Steroids
           @status = assert_status(cause, status)
           @code = assert_code(code)
           @record = assert_record(cause)
-          @quote = quote
-          @cause = cause
+          @quote = quote.presence
+          @cause = cause.presence
         end
 
         # ------------------------------------------------------------------------------------------

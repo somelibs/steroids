@@ -31,7 +31,11 @@ module Steroids
           outcome = exec_process(*args, **options, &block)
         end
       ensure
-        block.apply(self, outcome, noticable: self.noticable) if block_given?
+        if block_given?
+          block.apply(self, outcome, noticable: self.noticable)
+        elsif errors.any?
+          raise self.noticable.to_exception
+        end
       end
 
       private
