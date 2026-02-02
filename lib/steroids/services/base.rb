@@ -25,6 +25,7 @@ module Steroids
 
         @steroids_force = (!!options[:force]) || false
         @steroids_skip_callbacks = (!!options[:skip_callbacks]) || @@skip_callbacks || false
+        @steroids_async = options[:async] if options.key?(:async)
         if process_method.name == :async_process
           outcome = schedule_process(*args, **options, &block)
         else
@@ -88,6 +89,9 @@ module Steroids
       def async_exec?(perform_async)
         dev = Rails.env.development? || Rails.env.test?
         !!(perform_async == true && (Sidekiq::ProcessSet.new.any? || !dev))
+      rescue RedisClient::CannotConnectError, Errno::ENOENT, Errno::ECONNREFUSED => e
+        Steroids::Logger.print(e) if dev
+        false
       end
 
       # --------------------------------------------------------------------------------------------

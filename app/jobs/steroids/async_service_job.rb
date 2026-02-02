@@ -1,5 +1,5 @@
 module Steroids
-  class AsyncServiceJob < ApplicationJob
+  class AsyncServiceJob < ActiveJob::Base
     queue_as :default
 
     def perform(class_name:, params:)
