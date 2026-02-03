@@ -2,7 +2,13 @@ module Steroids
   module Extensions
     module ModuleExtension
       def grundclass
-        self.singleton_class? ? ObjectSpace.each_object(self).to_a.last : self
+        if self.singleton_class?
+          result = nil
+          ObjectSpace.each_object(self) { |obj| result = obj }
+          result
+        else
+          self
+        end
       end
 
       def create_namespace(namespace, value = nil)

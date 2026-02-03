@@ -13,15 +13,15 @@ module Steroids
         end
 
         def quote
-          Rails.cache.fetch("steroids/quotes") do
+          quotes = Rails.cache.fetch("steroids/quotes") do
             begin
-                YAML.load_file(path)
+              YAML.load_file(load_quotes)
             rescue StandardError => e
               Rails.logger.error(e)
-              quotes = ["One little bug..."]
+              ["One little bug..."]
             end
-            quotes.sample
           end
+          quotes.sample
         end
       end
     end
