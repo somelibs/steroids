@@ -21,7 +21,7 @@ module Steroids
               ["One little bug..."]
             end
           end
-          quotes.sample
+          Array(quotes).sample
         end
       end
     end
