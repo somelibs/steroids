@@ -4,7 +4,7 @@ class BaseErrorTest < ActiveSupport::TestCase
   # Custom error for testing
   class CustomTestError < Steroids::Errors::Base
     self.default_message = "Custom default message"
-    self.default_status = :unprocessable_entity
+    self.default_status = :unprocessable_content
   end
   
   # Basic error creation tests
@@ -25,7 +25,7 @@ class BaseErrorTest < ActiveSupport::TestCase
     error = CustomTestError.new
     
     assert_equal "Custom default message", error.message
-    assert_equal :unprocessable_entity, error.status
+    assert_equal :unprocessable_content, error.status
   end
   
   test "error can be created with options" do
@@ -85,7 +85,7 @@ class BaseErrorTest < ActiveSupport::TestCase
     error = Steroids::Errors::UnprocessableEntityError.new
     
     assert_equal "We couldn't understand your request (UnprocessableEntityError)", error.message
-    assert_equal :unprocessable_entity, error.status
+    assert_equal :unprocessable_content, error.status
   end
   
   test "InternalServerError has correct defaults" do

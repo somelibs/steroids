@@ -62,9 +62,9 @@ ActionDispatch::ExceptionWrapper.rescue_responses.merge!(
   "Steroids::Errors::ForbiddenError" => :forbidden,
   "Steroids::Errors::NotFoundError" => :not_found,
   "Steroids::Errors::ConflictError" => :conflict,
-  "Steroids::Errors::UnprocessableEntityError" => :unprocessable_entity,
+  "Steroids::Errors::UnprocessableEntityError" => :unprocessable_content,
   "Steroids::Errors::NotImplementedError" => :not_implemented,
-  "BaseErrorTest::CustomTestError" => :unprocessable_entity
+  "BaseErrorTest::CustomTestError" => :unprocessable_content
 )
 
 # Configure ActiveSupport

@@ -83,7 +83,7 @@ module Steroids
 
     class UnprocessableEntityError < Steroids::Errors::Base
       self.default_message = "We couldn't understand your request (UnprocessableEntityError)"
-      self.default_status = :unprocessable_entity
+      self.default_status = :unprocessable_content
     end
   end
 end
