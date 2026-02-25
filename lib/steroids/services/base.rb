@@ -74,6 +74,8 @@ module Steroids
           ).tap do |job|
             if async_exec?(perform_async)
               job.enqueue
+            elsif self.class.async_only? && options[:async] != false
+              errors.add("This job requires a background worker (Sidekiq) to be running")
             else
               exec_process(*args, **options, &block)
             end
@@ -143,6 +145,14 @@ module Steroids
       class << self
         def async?
           self.private_instance_methods.include?(:async_process) || self.instance_methods.include?(:async_process)
+        end
+
+        def async_only!
+          @async_only = true
+        end
+
+        def async_only?
+          !!@async_only
         end
 
         def call(*args, **options, &block)
