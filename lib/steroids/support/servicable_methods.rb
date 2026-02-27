@@ -24,9 +24,8 @@ module Steroids
             service_block = block.present? ? block : noticable_binding
             service_class = Object.const_get(class_name)
             instance = service_class.new(*args, **service_options)
-            call_options =
             # Propagate parent's async preference to sub-services unless explicitly overridden
-            instance.call({
+            instance.call(**{
               **class_options,
               **options,
               async: !options.key?(:async) && @steroids_async == true
