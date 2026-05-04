@@ -106,6 +106,10 @@ module Steroids
           !errors?
         end
 
+        def flash_key
+          errors? ? :alert : :notice
+        end
+
         def merge(noticable)
           @notices.merge(noticable.notices)
           @errors.merge(noticable.errors)
@@ -139,7 +143,7 @@ module Steroids
           )
         end
 
-        delegate :notice, :errors, :notices, :success?, :errors?, to: :noticable
+        delegate :notice, :errors, :notices, :success?, :errors?, :flash_key, to: :noticable
       end
 
       class_methods do

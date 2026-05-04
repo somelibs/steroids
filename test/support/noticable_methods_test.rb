@@ -70,9 +70,19 @@ class NoticableMethodsTest < ActiveSupport::TestCase
   
   test "errors? returns true when errors exist" do
     assert_not @noticable.errors?
-    
+
     @noticable.errors.add("An error")
     assert @noticable.errors?
+  end
+
+  test "flash_key returns :notice on success and :alert on errors" do
+    assert_equal :notice, @noticable.flash_key
+
+    @noticable.notices.add("Just a notice")
+    assert_equal :notice, @noticable.flash_key
+
+    @noticable.errors.add("An error")
+    assert_equal :alert, @noticable.flash_key
   end
   
   test "notice returns error messages when errors exist" do

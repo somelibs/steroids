@@ -33,7 +33,7 @@ module Steroids
         end
       ensure
         if block_given?
-          block.apply(self, outcome, noticable: self.noticable)
+          block.apply(self, outcome, noticable: self.noticable, flash_key: self.noticable.flash_key)
         elsif errors.any?
           raise self.noticable.to_exception
         end
