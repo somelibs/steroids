@@ -10,6 +10,13 @@ module Steroids
       class_attribute :default_message, default: "Oops, something went wrong (Unknown error)"
       class_attribute :default_status, default: :internal_server_error
 
+      # Whether instances of this error class should be reported through
+      # `Steroids::ErrorReporter` when caught by `Steroids::Services::Base`.
+      # Default true — flip to false on app-defined "expected" subclasses
+      # (validation errors, user-facing flow control, etc.) to keep
+      # observability dashboards focused on infrastructure failures.
+      class_attribute :report_to_observability, default: true
+
       attr_reader :id, :message, :cause, :code, :status, :errors,
                       :record, :context, :timestamp, :logged
 
