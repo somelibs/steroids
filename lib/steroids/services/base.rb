@@ -55,7 +55,7 @@ module Steroids
         end
       rescue StandardError => outcome
         errors.add(outcome.message, outcome)
-        report_to_observability!(outcome)
+        report_error!(outcome)
         if respond_to?(:rescue!, true) || block_given?
           Steroids::Logger.print(outcome)
           send_apply(:rescue!, outcome)
@@ -73,11 +73,18 @@ module Steroids
       # Errors whose class opts out via `report_to_observability = false` are skipped;
       # everything else (raw 3rd-party errors and Steroids errors that haven't opted out)
       # is forwarded to `Rails.error.report` and on to whatever the parent app subscribed.
-      def report_to_observability!(outcome)
+      #
+      # Called automatically by `exec_process` for any rescued StandardError. Subclasses
+      # can also call it explicitly from inside their own rescue blocks (where the
+      # service caught the exception itself) to keep observability without re-raising.
+      # Extra keyword args are forwarded as context tags (e.g. `scope:`, ids of the
+      # records involved, etc.).
+      def report_error!(outcome, **context)
         return if outcome.respond_to?(:report_to_observability) && outcome.report_to_observability == false
 
-        Steroids::ErrorReporter.report_once!(outcome, service: self.class.name)
+        Steroids::ErrorReporter.report_once!(outcome, service: self.class.name, **context)
       end
+      alias_method :report_to_observability!, :report_error!
 
       def schedule_process(*args, **options, &block)
         perform_async = !!(options[:async].ifnil(!Sidekiq.server?))
