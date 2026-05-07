@@ -724,10 +724,10 @@ When developing Steroids locally alongside a Rails application, you can use Bund
 
 ```bash
 # Point Bundler to your local Steroids git repository
-$ bundle config local.steroids /path/to/local/git/repository
+$ bundle config set local.steroids /path/to/local/git/repository
 
 # Allow Bundler to use any local branch
-$ bundle config disable_local_branch_check true
+$ bundle config set disable_local_branch_check true
 
 
 # Verify the configuration
