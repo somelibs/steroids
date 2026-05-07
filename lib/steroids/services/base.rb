@@ -110,10 +110,19 @@ module Steroids
       end
 
       def async_exec?(perform_async)
-        dev = Rails.env.development? || Rails.env.test?
-        !!(perform_async == true && (Sidekiq::ProcessSet.new.any? || !dev))
+        return false unless perform_async == true
+
+        # Outside dev/test, always enqueue. Sidekiq is the source of truth — if its
+        # Redis is briefly unreachable, let the enqueue itself raise loudly rather
+        # than silently falling back to running the service inline in the request
+        # thread (which routinely blew the rack-timeout budget on long-running jobs).
+        return true unless Rails.env.development? || Rails.env.test?
+
+        # Dev/test: only enqueue when a Sidekiq worker is actually registered;
+        # otherwise run inline so user-triggered jobs still flow without Sidekiq.
+        Sidekiq::ProcessSet.new.any?
       rescue RedisClient::CannotConnectError, Errno::ENOENT, Errno::ECONNREFUSED => e
-        Steroids::Logger.print(e) if dev
+        Steroids::Logger.print(e)
         false
       end
 

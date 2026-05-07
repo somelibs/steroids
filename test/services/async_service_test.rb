@@ -96,11 +96,30 @@ class AsyncServiceTest < ActiveSupport::TestCase
   # Test async execution detection
   test "async_exec? method determines execution mode" do
     service = AsyncTestService.new(value: 1, multiplier: 1)
-    
+
     # In test environment, should generally run synchronously
     # unless Sidekiq is running
     assert Rails.env.test?, "Should be in test environment"
     refute service.send(:async_exec?, true), "Should not execute async in test environment"
+  end
+
+  test "async_exec? returns false when perform_async is false regardless of env" do
+    service = AsyncTestService.new(value: 1, multiplier: 1)
+    refute service.send(:async_exec?, false), "Must respect perform_async: false"
+  end
+
+  test "async_exec? always returns true outside dev/test, no Sidekiq probe" do
+    service = AsyncTestService.new(value: 1, multiplier: 1)
+
+    Rails.env.stub(:development?, false) do
+      Rails.env.stub(:test?, false) do
+        # Make ProcessSet blow up so we'd notice if it were called.
+        Sidekiq::ProcessSet.stub(:new, ->(*) { raise "ProcessSet should not be queried outside dev/test" }) do
+          assert service.send(:async_exec?, true),
+                 "Outside dev/test, async_exec? must enqueue without probing Sidekiq"
+        end
+      end
+    end
   end
   
   # Test class-level call method with async service
