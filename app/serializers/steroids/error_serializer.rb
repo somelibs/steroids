@@ -8,9 +8,7 @@ module Steroids
     attribute :errors
     attribute :timestamp
 
-    attributes :exception,
-               :message,
-               if: -> { Rails.env.development? }
+    attribute :exception, if: -> { Rails.env.development? }
 
     def exception
       if @object.respond_to?(:cause) && @object.cause.present?

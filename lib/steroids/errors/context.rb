@@ -47,7 +47,11 @@ module Steroids
 
         def assert_status_from_error(cause)
           error_class = cause.is_a?(Exception) ? cause.class : self.class
-          ActionDispatch::ExceptionWrapper.rescue_responses[error_class.name] || :internal_server_error
+          rescue_responses = ActionDispatch::ExceptionWrapper.rescue_responses
+          # Use key? so unregistered classes return nil (letting the OR-chain in
+          # `assert_status` reach `self.default_status`) instead of the Hash's
+          # default value (`:internal_server_error`), which short-circuits it.
+          rescue_responses.key?(error_class.name) ? rescue_responses[error_class.name] : nil
         end
 
         def assert_code(status)

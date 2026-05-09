@@ -6,7 +6,14 @@ class BaseErrorTest < ActiveSupport::TestCase
     self.default_message = "Custom default message"
     self.default_status = :unprocessable_content
   end
-  
+
+  # Custom error NOT registered in ActionDispatch::ExceptionWrapper.rescue_responses,
+  # to exercise the unregistered-class fallback path in `assert_status_from_error`.
+  class UnregisteredCustomError < Steroids::Errors::Base
+    self.default_message = "Unregistered default message"
+    self.default_status = :forbidden
+  end
+
   # Basic error creation tests
   test "error can be created with string message" do
     error = Steroids::Errors::Base.new("Something went wrong")
@@ -202,6 +209,32 @@ class BaseErrorTest < ActiveSupport::TestCase
     assert_kind_of StandardError, error
   end
   
+  # Regression: `assert_status_from_error` previously used
+  # `rescue_responses[name] || :internal_server_error`, but `rescue_responses`
+  # is a Hash with default `:internal_server_error`, so the OR-chain in
+  # `assert_status` short-circuited and `self.default_status` was never reached
+  # for classes that consumer apps had not manually registered.
+  test "unregistered subclass falls back to its default_status" do
+    assert_not ActionDispatch::ExceptionWrapper.rescue_responses.key?(
+      "BaseErrorTest::UnregisteredCustomError"
+    ), "precondition: class should not be registered"
+
+    error = UnregisteredCustomError.new
+
+    assert_equal :forbidden, error.status
+    assert_equal "Unregistered default message", error.message
+  end
+
+  test "registered class still uses the registered status" do
+    error = Steroids::Errors::UnauthorizedError.new
+    assert_equal :unauthorized, error.status
+  end
+
+  test "explicit status: kwarg always wins over registration and default_status" do
+    error = Steroids::Errors::UnauthorizedError.new(status: :conflict)
+    assert_equal :conflict, error.status
+  end
+
   test "error can be raised and rescued" do
     assert_raises(Steroids::Errors::BadRequestError) do
       raise Steroids::Errors::BadRequestError.new("Bad request")
