@@ -44,6 +44,8 @@ end
 # Mock Sidekiq if not available
 unless defined?(Sidekiq)
   module Sidekiq
+    def self.server?; false; end
+
     class ProcessSet
       def initialize; end
       def any?; false; end
