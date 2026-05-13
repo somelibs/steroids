@@ -175,7 +175,7 @@ class BaseErrorTest < ActiveSupport::TestCase
   end
 
   test "error uses cause backtrace if available" do
-    raise StandardError, "Original"
+    raise StandardError.new("Original")
   rescue => e
     error = Steroids::Errors::Base.new("Wrapped", cause: e)
 

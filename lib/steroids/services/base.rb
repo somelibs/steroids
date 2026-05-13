@@ -140,12 +140,28 @@ module Steroids
       # Flow control
       # --------------------------------------------------------------------------------------------
 
+      # Halt execution from inside `process`. The raised `RuntimeError` is
+      # `Steroids::Services::Base::RuntimeError` (a `Steroids::Errors::Base`
+      # subclass — NOT Ruby's built-in `RuntimeError`), caught by
+      # `process_wrapper`'s `rescue RuntimeError => e` and converted into a
+      # noticable error entry.
+      #
+      # NOTE — compact form (`raise X.new(...)`) is required: Steroids errors
+      # consume kwargs (`:message`, `:errors`, `:log`); the exploded form
+      # silently drops them. A prior rubocop autocorrect of `Style/RaiseArgs`
+      # mangled this method into `raise <hash>` (which crashes with TypeError).
+      # Defenses: `.rubocop.yml` pins `Style/RaiseArgs` to `compact`, and the
+      # inline disable below silences `Style/RedundantException` (which can't
+      # tell that this `RuntimeError` is the local `Steroids::Errors::Base`
+      # subclass, not Ruby's built-in).
       def drop!(message_or_nil = nil, message: nil)
-        unless @steroids_force
-          raise message: message_or_nil || message,
-                errors: errors,
-                log: true.to_s
-        end
+        return if @steroids_force
+
+        raise RuntimeError.new( # rubocop:disable Style/RedundantException
+          message: message_or_nil || message,
+          errors: errors,
+          log: true
+        )
       end
 
       class << self

@@ -116,7 +116,7 @@ class ComprehensiveServiceTest < ActiveSupport::TestCase
 
     def process
       drop!("Dropped intentionally") if @should_drop
-      raise StandardError, "Failed intentionally" if @should_fail
+      raise StandardError.new("Failed intentionally") if @should_fail
       "success"
     end
 

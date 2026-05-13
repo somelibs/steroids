@@ -99,6 +99,14 @@ Style/TrailingCommaInArguments:
 Style/CaseEquality:
   Enabled: false
 
+# `Steroids::Errors::Base` subclasses accept kwargs (`:message`, `:errors`,
+# `:log`, `:context`, …) — see lib/steroids/errors/base.rb. The exploded form
+# `raise X, msg` silently drops those kwargs, and rubocop's unsafe autocorrect
+# from compact → exploded has already broken `drop!` once (see Services::Base).
+# Lock the cop to compact form so kwarg-aware exceptions stay intact.
+Style/RaiseArgs:
+  EnforcedStyle: compact
+
 # ----------------------------------------------------------------------------------------
 # Naming — the codebase uses some idiomatic Ruby names that trip default cops
 # ----------------------------------------------------------------------------------------

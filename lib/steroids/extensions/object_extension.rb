@@ -118,7 +118,7 @@ module Steroids
       end
 
       def deep_serialize(include_object = true)
-        raise TypeError, "Cannot serialize object of type #{self.class}" unless serializable?(include_object)
+        raise TypeError.new("Cannot serialize object of type #{self.class}") unless serializable?(include_object)
 
         case self
         when Hash

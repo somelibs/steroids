@@ -173,17 +173,6 @@ Style/OptionalBooleanParameter:
     - 'lib/steroids/extensions/object_extension.rb'
     - 'lib/steroids/types/base.rb'
 
-# Offense count: 7
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle, AllowedCompactTypes.
-# SupportedStyles: compact, exploded
-Style/RaiseArgs:
-  Exclude:
-    - 'lib/steroids/extensions/array_extension.rb'
-    - 'lib/steroids/extensions/module_extension.rb'
-    - 'lib/steroids/services/base.rb'
-    - 'test/errors/base_error_test.rb'
-
 # Offense count: 5
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: ConvertCodeThatCanStartToReturnNil, AllowedMethods, MaxChainLength.

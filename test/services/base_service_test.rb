@@ -25,7 +25,7 @@ class BaseServiceTest < ActiveSupport::TestCase
 
   class ExceptionService < Steroids::Services::Base
     def process
-      raise StandardError, "Unexpected error"
+      raise StandardError.new("Unexpected error")
     end
   end
 
