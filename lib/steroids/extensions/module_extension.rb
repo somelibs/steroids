@@ -2,7 +2,7 @@ module Steroids
   module Extensions
     module ModuleExtension
       def grundclass
-        if self.singleton_class?
+        if singleton_class?
           result = nil
           ObjectSpace.each_object(self) { |obj| result = obj }
           result
@@ -18,11 +18,11 @@ module Steroids
 
         module_name = modules.first
         nested_modules = modules[1..].join('::')
-        current_module = if self.const_defined?(module_name, false)
-          self.const_get(module_name)
-        else
-          self.const_set(module_name, Module.new)
-        end
+        current_module = if const_defined?(module_name, false)
+                           const_get(module_name)
+                         else
+                           const_set(module_name, Module.new)
+                         end
 
         nested_modules.empty? ? current_module : current_module.create_namespace(nested_modules, value)
       end
@@ -44,7 +44,7 @@ module Steroids
           self.class.send(method_name, *args)
         end
         grundclass.define_singleton_method(alias_name) do |*args|
-          self.send(method_name, *args)
+          send(method_name, *args)
         end
       end
     end

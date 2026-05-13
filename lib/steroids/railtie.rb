@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "zeitwerk"
 require "rails"
 require "active_model_serializers"

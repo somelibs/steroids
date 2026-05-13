@@ -8,7 +8,8 @@ module Steroids
           super(object, options)
         end
 
-        def serializable_hash(adapter_options = nil, options = {}, adapter_instance = self.class.serialization_adapter_instance)
+        def serializable_hash(adapter_options = nil, options = {},
+                              adapter_instance = self.class.serialization_adapter_instance)
           if @object
             hash = super
             hash.each { |key, value| hash.delete(key) if value.nil? }
@@ -25,17 +26,15 @@ module Steroids
         def parse_options
           options ||= @instance_options ||= {}
           options[:params]&.each do |key, value|
-            begin
-              case options[:params][key]
-                when 'true'
-                  options[:params][key] = true
-                when 'false'
-                  options[:params][key] = false
-                when /^[-+]?[1-9]([0-9]*)?$/
-                  options[:params][key] = Integer(value)
-              end
-            rescue
+            case options[:params][key]
+            when 'true'
+              options[:params][key] = true
+            when 'false'
+              options[:params][key] = false
+            when /^[-+]?[1-9]([0-9]*)?$/
+              options[:params][key] = Integer(value)
             end
+          rescue
           end
           options
         end

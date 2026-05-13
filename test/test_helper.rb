@@ -20,7 +20,7 @@ module TestApp
   class Application < Rails::Application
     config.load_defaults Rails::VERSION::STRING.to_f
     config.eager_load = false
-    config.logger = Logger.new(nil)  # Silence logs during tests
+    config.logger = Logger.new(nil) # Silence logs during tests
   end
 end
 
@@ -44,11 +44,11 @@ end
 # Mock Sidekiq if not available
 unless defined?(Sidekiq)
   module Sidekiq
-    def self.server?; false; end
+    def self.server? = false
 
     class ProcessSet
       def initialize; end
-      def any?; false; end
+      def any? = false
     end
   end
 end

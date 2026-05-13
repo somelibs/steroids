@@ -14,9 +14,15 @@ gemspec
 # To use a debugger
 # gem 'byebug', group: [:development, :test]
 
+gem "active_model_serializers", "~> 0.10.14"
 gem "rails", "~> 7.1"
 gem "rainbow", "~> 3.1", ">= 3.1.1"
-gem "active_model_serializers", "~> 0.10.14"
 
 # Test dependencies
 gem "sqlite3", "~> 1.4", group: [:development, :test]
+
+# Linting (development only)
+group :development do
+  gem "rubocop", "~> 1.65", require: false
+  gem "rubocop-rails", "~> 2.25", require: false
+end

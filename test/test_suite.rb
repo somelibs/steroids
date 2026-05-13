@@ -4,7 +4,7 @@
 require_relative 'test_helper'
 
 # Load all test files
-Dir[File.expand_path('../**/*_test.rb', __FILE__)].each do |test_file|
+Dir[File.expand_path('**/*_test.rb', __dir__)].each do |test_file|
   require test_file
 end
 

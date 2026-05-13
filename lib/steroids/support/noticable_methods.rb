@@ -29,7 +29,7 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       class NoticableCollection
-        NOTICABLE_TYPES = %i[errors notices]
+        NOTICABLE_TYPES = [:errors, :notices]
 
         attr_reader :collection
 
@@ -59,7 +59,7 @@ module Steroids
           end
         end
 
-        alias_method :<<, :add
+        alias << add
 
         def full_messages
           if @collection.any?
@@ -69,7 +69,7 @@ module Steroids
           end
         end
 
-        alias_method :messages, :full_messages
+        alias messages full_messages
       end
 
       # --------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ module Steroids
         # Modes the success notice resolver knows about. `:sync` is the default
         # (set in `initialize`); the `service` macro flips it to `:async` on the
         # un-run preview instance it yields after `.call_async` enqueues.
-        DISPATCH_MODES = %i[sync async].freeze
+        DISPATCH_MODES = [:sync, :async].freeze
 
         # Generic fallbacks when a service did not declare a per-mode notice.
         ASYNC_FALLBACK_NOTICE = "Queued for background processing.".freeze
@@ -90,8 +90,7 @@ module Steroids
         # claiming the work has actually completed yet.
         ASYNC_PLAIN_SUFFIX = " (async)".freeze
 
-        attr_reader :notices
-        attr_reader :errors
+        attr_reader :notices, :errors
         attr_accessor :dispatch_mode
 
         def initialize(concern = [], success_notice: nil, dispatch_mode: :sync)
@@ -103,15 +102,15 @@ module Steroids
         end
 
         def full_messages
-          if self.errors?
+          if errors?
             @errors.full_messages
           else
             @notices.full_messages.presence || resolved_success_notice
           end
         end
 
-        alias_method :notice, :full_messages
-        alias_method :message, :full_messages
+        alias notice full_messages
+        alias message full_messages
 
         def errors?
           @errors.any?
@@ -132,10 +131,12 @@ module Steroids
 
         def to_exception
           cause = @errors.find { |error| error[:exception].present? }
-          RuntimeException.new(
-            self.full_messages,
-            cause: cause.present? && cause[:exception]
-          ) if errors?
+          if errors?
+            RuntimeException.new(
+              full_messages,
+              cause: cause.present? && cause[:exception]
+            )
+          end
         end
 
         private

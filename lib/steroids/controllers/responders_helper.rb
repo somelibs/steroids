@@ -8,17 +8,17 @@ module Steroids
 
         def respond_with(*resources, &block)
           resource = resources.first
-          respond_to do | format |
-            format.json {
+          respond_to do |format|
+            format.json do
               options = resources.extract_options!
               options = __parse_options(resource, options)
               scoped_data = __apply_scopes(resource, options)
               paginated_data = __apply_pagination(scoped_data, options)
               return __response(paginated_data, options)
-            }
-            format.any {
+            end
+            format.any do
               return defined?(super) ? super(*resources, &block) : resource
-            }
+            end
           end
         end
 

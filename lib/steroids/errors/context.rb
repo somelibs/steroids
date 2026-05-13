@@ -3,7 +3,7 @@ module Steroids
     module Context
       extend ActiveSupport::Concern
 
-      included do |base|
+      included do |_base|
         private
 
         def define_instance_variables_for(
@@ -15,7 +15,7 @@ module Steroids
           cause: nil,
           context: false,
           log: false,
-          **splat
+          **_splat
         )
           @timestamp = DateTime.now
           @id = SecureRandom.uuid
@@ -33,8 +33,8 @@ module Steroids
         # DERIVE ERROR ATTRIBUTES
         # ------------------------------------------------------------------------------------------
 
-        def assert_message(cause, message)
-          message || self.default_message
+        def assert_message(_cause, message)
+          message || default_message
         end
 
         def assert_context(cause, context)
@@ -42,7 +42,8 @@ module Steroids
         end
 
         def assert_status(cause, status)
-          status || reflect_on(cause, :status) || assert_status_from_error(cause) || self.default_status || :unknown_error
+          status || reflect_on(cause,
+                               :status) || assert_status_from_error(cause) || default_status || :unknown_error
         end
 
         def assert_status_from_error(cause)
@@ -65,7 +66,7 @@ module Steroids
           [Array(errors), cause_errors, validations_errors].flatten.compact.uniq
         end
 
-        def assert_record(cause, errors = [])
+        def assert_record(cause, _errors = [])
           reflect_on(cause, :record)
         end
       end

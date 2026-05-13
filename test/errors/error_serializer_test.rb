@@ -5,20 +5,28 @@ class ErrorSerializerTest < ActiveSupport::TestCase
     Steroids::ErrorSerializer.new(error).serializable_hash
   end
 
+  # Stubs Rails.env for the duration of the block. Wraps the singleton-method
+  # redefinitions in silence_warnings because Rails.env is already defined and
+  # vanilla `define_singleton_method` would emit a "method redefined" warning
+  # each time (twice per call — install and restore).
   def with_rails_env(env)
     original = Rails.env
-    Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new(env) }
+    silence_warnings do
+      Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new(env) }
+    end
     yield
   ensure
-    Rails.define_singleton_method(:env) { original }
+    silence_warnings do
+      Rails.define_singleton_method(:env) { original }
+    end
   end
 
   # Regression: a previous declaration
   #   `attributes :exception, :message, if: -> { Rails.env.development? }`
   # silently overrode the unconditional `attribute :message` above it (AMS uses
   # the last attribute declaration), causing every error response in production
-  # to ship without a `message` field. Consumers like Bernstein then rendered
-  # empty alert banners on failed login attempts.
+  # to ship without a `message` field. API consumers then rendered empty alert
+  # banners on failed login attempts.
   test "production env: message attribute is included" do
     error = Steroids::Errors::UnauthorizedError.new(message: "Unauthorized.")
 

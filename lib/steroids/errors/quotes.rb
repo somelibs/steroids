@@ -14,12 +14,10 @@ module Steroids
 
         def quote
           quotes = Rails.cache.fetch("steroids/quotes") do
-            begin
-              YAML.load_file(load_quotes)
-            rescue StandardError => e
-              Rails.logger.error(e)
-              ["One little bug..."]
-            end
+            YAML.load_file(load_quotes)
+          rescue => e
+            Rails.logger.error(e)
+            ["One little bug..."]
           end
           Array(quotes).sample
         end

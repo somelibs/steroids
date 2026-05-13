@@ -21,8 +21,9 @@ module Steroids
     def message
       [
         @object.message,
-        Rails.env.development? && @object.respond_to?(:cause) && @object.cause.present? ?
-          @object.cause : nil
+        if Rails.env.development? && @object.respond_to?(:cause) && @object.cause.present?
+          @object.cause
+        end
       ].compact.join(" - Cause by: ")
     end
 

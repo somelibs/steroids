@@ -1,0 +1,195 @@
+inherit_from: .rubocop_todo.yml
+
+# RuboCop configuration for the Steroids gem.
+#
+# Philosophy: enable RuboCop as a guard rail against new code drift, but don't
+# force churn on the existing codebase. Cops that conflict with established
+# style here are disabled rather than retro-fitted across every file.
+#
+# Run: `bundle exec rubocop`  or  `bundle exec rubocop -a` (autocorrect safe).
+
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: disable
+  SuggestExtensions: false
+  Exclude:
+    - "bin/**/*"
+    - "tmp/**/*"
+    - "vendor/**/*"
+    - ".bundle/**/*"
+    - "*.gemspec"
+    - "Gemfile.lock"
+    - "steroids-*.gem"
+
+# ----------------------------------------------------------------------------------------
+# Layout — keep existing visual conventions
+# ----------------------------------------------------------------------------------------
+
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns:
+    - "^\\s*#"  # don't penalize long comment headers / banners
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: false
+
+Layout/EmptyLinesAroundModuleBody:
+  Enabled: false
+
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+# ----------------------------------------------------------------------------------------
+# Style — codebase mixes single + double quotes; don't force either
+# ----------------------------------------------------------------------------------------
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/RescueStandardError:
+  EnforcedStyle: implicit
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/WordArray:
+  EnforcedStyle: brackets
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: either
+
+Style/NumericPredicate:
+  Enabled: false
+
+# Trailing commas help diffs; the gem's existing arrays/hashes don't use them,
+# so leave the decision to authors rather than enforce.
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+# Existing core extensions use `if cond1 || cond2`-style multi-condition
+# checks for serializability — those are clearer than `case/when`.
+Style/CaseEquality:
+  Enabled: false
+
+# ----------------------------------------------------------------------------------------
+# Naming — the codebase uses some idiomatic Ruby names that trip default cops
+# ----------------------------------------------------------------------------------------
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - e
+    - id
+    - to
+    - by
+    - x
+    - n
+    - v
+
+Naming/AccessorMethodName:
+  Enabled: false
+
+# ----------------------------------------------------------------------------------------
+# Metrics — the gem has a few naturally long methods (e.g. validate_serializable!,
+# format_input in Logger). Loosen rather than refactor reflexively.
+# ----------------------------------------------------------------------------------------
+
+Metrics/MethodLength:
+  Max: 30
+  Exclude:
+    - "lib/steroids/logger.rb"
+    - "lib/steroids/services/base.rb"
+    - "lib/steroids/support/noticable_methods.rb"
+    - "lib/steroids/extensions/class_extension.rb"
+    - "lib/steroids/extensions/method_extension.rb"
+
+Metrics/ClassLength:
+  Max: 250
+  Exclude:
+    - "lib/steroids/services/base.rb"
+    - "lib/steroids/logger.rb"
+
+Metrics/ModuleLength:
+  Max: 200
+  Exclude:
+    - "lib/steroids/support/noticable_methods.rb"
+    - "lib/steroids/extensions/object_extension.rb"
+    - "lib/steroids/extensions/class_extension.rb"
+
+Metrics/AbcSize:
+  Max: 30
+  Exclude:
+    - "lib/steroids/logger.rb"
+    - "lib/steroids/services/base.rb"
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/BlockLength:
+  Exclude:
+    - "test/**/*"
+    - "Rakefile"
+
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+# ----------------------------------------------------------------------------------------
+# Lint — keep these on but ignore historical typos / patterns
+# ----------------------------------------------------------------------------------------
+
+# `OTPIONS` (sic) is a public constant on Steroids::Errors::Base — renaming is a
+# breaking change that needs its own deprecation cycle.
+Lint/ConstantDefinitionInBlock:
+  Enabled: false
+
+Lint/MissingSuper:
+  Exclude:
+    - "lib/steroids/serializers/methods.rb"
+    - "lib/steroids/types/serializable_type.rb"
+
+# Tests do a lot of class_eval / define_method swaps that trip these.
+Lint/UnusedMethodArgument:
+  Exclude:
+    - "test/**/*"
+
+# Comments call out TODOs intentionally; don't gate on them.
+Lint/Debugger:
+  Enabled: true
+
+# ----------------------------------------------------------------------------------------
+# Per-directory overrides
+# ----------------------------------------------------------------------------------------
+
+inherit_mode:
+  merge:
+    - Exclude

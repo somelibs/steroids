@@ -10,7 +10,7 @@ module Steroids
       # Init-time options that are NOT forwarded to `initialize`, but instead
       # control the .call invocation. Anything else passed at the class entry
       # point flows into the service's `initialize(**options)`.
-      CONTROL_OPTIONS = %i[force skip_callbacks].freeze
+      CONTROL_OPTIONS = [:force, :skip_callbacks].freeze
 
       # Argument-position safe set for `call_async` serializability validation —
       # values whose presence in init options is unambiguously serializable by
@@ -47,9 +47,9 @@ module Steroids
         outcome = exec_process(&block)
       ensure
         if block_given?
-          block.apply(self, outcome, noticable: self.noticable, flash_key: self.noticable.flash_key)
+          block.apply(self, outcome, noticable: noticable, flash_key: noticable.flash_key)
         elsif errors.any?
-          raise self.noticable.to_exception
+          raise noticable.to_exception
         end
       end
 
@@ -59,22 +59,22 @@ module Steroids
       # Run process inline (with callbacks, transaction, error capture).
       # --------------------------------------------------------------------------------------------
 
-      def exec_process(&block)
-        outcome = process_wrapper do
+      def exec_process
+        process_wrapper do
           run_before_callbacks unless @steroids_skip_callbacks
           process_method.call.tap do |outcome|
             drop! if !block_given? && errors.any?
             run_after_callbacks(outcome) unless @steroids_skip_callbacks
           end
         end
-      rescue StandardError => outcome
-        errors.add(outcome.message, outcome)
-        report_error!(outcome)
+      rescue => e
+        errors.add(e.message, e)
+        report_error!(e)
         if respond_to?(:rescue!, true) || block_given?
-          Steroids::Logger.print(outcome)
-          send_apply(:rescue!, outcome)
+          Steroids::Logger.print(e)
+          send_apply(:rescue!, e)
         else
-          raise outcome
+          raise e
         end
       ensure
         ensure! if respond_to?(:ensure!, true)
@@ -98,7 +98,7 @@ module Steroids
 
         Steroids::ErrorReporter.report_once!(outcome, service: self.class.name, **context)
       end
-      alias_method :report_to_observability!, :report_error!
+      alias report_to_observability! report_error!
 
       def process_method
         @process_method ||= try_method(:process)
@@ -114,8 +114,8 @@ module Steroids
         ActiveRecord::Base.transaction do
           block.call
         end
-      rescue RuntimeError => error
-        errors.add(error.message)
+      rescue RuntimeError => e
+        errors.add(e.message)
       end
 
       def run_before_callbacks
@@ -142,11 +142,9 @@ module Steroids
 
       def drop!(message_or_nil = nil, message: nil)
         unless @steroids_force
-          raise RuntimeError.new(
-            message: message_or_nil || message,
-            errors: errors,
-            log: true
-          )
+          raise message: message_or_nil || message,
+                errors: errors,
+                log: true.to_s
         end
       end
 
@@ -179,7 +177,7 @@ module Steroids
           init_opts, ctrl_opts = split_options(options)
           new(*args, **init_opts).call(**ctrl_opts, &block)
         end
-        alias_method :call_sync, :call
+        alias call_sync call
 
         def call_async(*args, **options)
           if args.any?

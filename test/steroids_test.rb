@@ -4,11 +4,11 @@ class SteroidsTest < ActiveSupport::TestCase
   test "Steroids module exists" do
     assert_kind_of Module, Steroids
   end
-  
+
   test "Steroids has version number" do
     assert Steroids::VERSION
   end
-  
+
   test "core modules are loaded" do
     assert Steroids::Services
     assert Steroids::Services::Base
@@ -18,7 +18,7 @@ class SteroidsTest < ActiveSupport::TestCase
     assert Steroids::Support::ServicableMethods
     assert Steroids::Logger
   end
-  
+
   test "error classes are defined" do
     assert Steroids::Errors::BadRequestError
     assert Steroids::Errors::UnauthorizedError

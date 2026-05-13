@@ -6,6 +6,21 @@ This file provides guidance to AI Agents when working with code in this reposito
 
 Steroids is a Rails enhancement gem that provides powerful abstractions for services, serializers, and various Ruby extensions. It's designed to make Rails applications more maintainable and provide better patterns for common tasks.
 
+## Knowledge base
+
+A structured, machine-readable knowledge base lives at `knowledge/`:
+
+- `knowledge/INDEX.md` — file index + cross-reference graph
+- `knowledge/MASTER.md` — product spec, capability inventory, roadmap, acceptance criteria
+- `knowledge/biz-*.md` — what Steroids is and who uses it
+- `knowledge/ar-*.md` — architecture deep-dives (services, async dispatch, noticable layer, errors/observability, extensions, types/serializers, controllers)
+- `knowledge/plans/STATUS.md` — current focus and progress tracking
+- `knowledge/plans/@YYYY-MM-DD-NN-*.md` — forward-looking design plans
+- `knowledge/wrapups/@YYYY-MM-DD-NN-*.md` — point-in-time engagement records (commit history with context)
+- `knowledge/GUIDELINES.md` — project-specific development guidelines (shared baseline lives in `~/.claude/knowledge/GUIDELINES.md`)
+
+This document (AGENTS.md / CLAUDE.md) is the user-facing API tour. Reach for the knowledge base when you need the *why* behind a decision, the cross-cutting picture, or the engagement timeline.
+
 ## Project Structure
 
 ```

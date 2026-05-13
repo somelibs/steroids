@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`Steroids::Extensions::MethodExtension#apply`** — switched from `self.yield(...)` to `self.call(...)`. `Method` has no `yield`; the method only worked on Procs (since `Proc#yield` is an alias for `Proc#call`). Now works on both, matching the docstring intent and unblocking `method.apply` for any consumer.
+- **`Steroids::Logger#print`** — the `notify(level, ...)` call now receives the original `@exception` (or `@input`), not the formatted output string. `notify` filters on `input.is_a?(Exception)`, so passing the formatted String meant the notifier callback **never fired** for exceptions. Now `Steroids::Logger.notifier = proc { |exc| ... }` correctly invokes for `:error` / `:warn` level exceptions.
+- **`Steroids::Logger#notify`** — reads the notifier via `self.class.notifier` so the class-level `Steroids::Logger.notifier =` setter is honored from the instance method (previously it read the instance ivar `@notifier`, which is never set).
+- **`Steroids::Logger#format_backtrace`** — guards `@backtrace.any?` with safe navigation. Previously raised `NoMethodError: undefined method 'any?' for nil` when logging an exception that was instantiated but never raised (so its `.backtrace` is `nil`).
+
+### Added — tooling
+- **`.rubocop.yml`** with a project-tailored config (Ruby 3.3+, Rails 7+). `.rubocop_todo.yml` baselines existing offenses so `bundle exec rubocop` is green on the existing codebase; new code is held to the configured standard. Adds `rubocop`/`rubocop-rails` as development-group gems.
+
+### Added — test coverage
+- **`test/extensions/`** — new tests for `object_extension`, `array_extension`, `hash_extension`, `method_extension`, `class_extension`, `module_extension`. ~50 new tests / ~95 assertions covering `typed!`, `send_apply`/`send_apply!`, `instance_apply`, `serializable?`/`deep_serialize`, `Array#cast`/`#find_map`, `Hash#fetch_any`, `Method#apply` arity matching across kw/positional/rest, `Class#attribute` typed reader/writer, `Class#delegate_alias`, `Class#build_anonymous`, `Module#create_namespace`.
+- **`test/logger_test.rb`** — new tests exercising level inference (info / warn / error), the notifier callback, and the "already logged" short-circuit.
+- **`test/types/`** — new tests for `Steroids::Types::SerializableType` (attribute tracking, mass assignment) and `Steroids::Types::Base` (required-attribute enforcement, `ignore_required`, `.import` exception wrapping).
+
+### Changed — test cleanup
+- **`test/services/async_service_test.rb`** — replaced the `singleton_class.alias_method` trampoline in the worker round-trip test with a dedicated `ConstructorSpyService` fixture; replaced the `CallbackService.class_eval { define_method(:setup) }` swap in the `skip_callbacks` test with a dedicated `CallbackCounterService` fixture. Both tests now read straight-through without relying on test-order isolation.
+- **`test/errors/error_serializer_test.rb`** — wrapped the `Rails.define_singleton_method(:env)` stub in `silence_warnings` so the "method redefined" output no longer appears in test runs.
+
 ### Changed (BREAKING) — per-call async dispatch
 - **Async-ness is now a caller decision, not a service property.** Services define a single `def process`; callers pick `.call` (inline) or `.call_async` (enqueue). The two entry points sit side-by-side on every service.
 - `def async_process` is **removed**. Migration: rename to `def process`. Callers that previously got auto-enqueue out-of-Sidekiq must switch to `.call_async`; callers that previously forced inline via `.call(async: false)` just drop the kwarg and call `.call`.

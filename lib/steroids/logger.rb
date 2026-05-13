@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'rainbow'
 
 module Steroids
@@ -19,7 +20,10 @@ module Steroids
       else
         output = format_input(@level, @input)
         Rails.logger.send(@level, output)
-        notify(@level, output)
+        # Pass the original input (the exception), NOT the formatted output —
+        # `notify` filters with `input.is_a?(Exception)` and the formatted
+        # output is a plain String.
+        notify(@level, @exception || @input)
         true
       end
     end
@@ -27,8 +31,12 @@ module Steroids
     private
 
     def assert_exception(input, exception)
-      exception.is_a?(Exception) ? exception : begin
+      if exception.is_a?(Exception)
+        exception
+      else
+
         input.is_a?(Exception) ? input : nil
+
       end
     end
 
@@ -55,28 +63,27 @@ module Steroids
       end
     end
 
-    def assert_backtrace(input, exception, verbosity)
-      @backtrace_verbosity = begin
-        if [:full, :concise, :none].include?(verbosity)
-          verbosity
-        elsif @exception.present?
-          :full
-        else
-          :none
-        end
-      end
+    def assert_backtrace(_input, _exception, verbosity)
+      @backtrace_verbosity = if [:full, :concise, :none].include?(verbosity)
+                               verbosity
+                             elsif @exception.present?
+                               :full
+                             else
+                               :none
+                             end
+
       @exception.present? ? @exception.backtrace : caller
     end
 
     def clean_path(input_path)
       root_path_array = Rails.root.to_s.split("/")
-      root_path_array.slice!(root_path_array.size-1..)
+      root_path_array.slice!(root_path_array.size - 1..)
       input_path_array = input_path.split("/")
       zipped_array = root_path_array.zip(input_path_array)
       matchs = zipped_array.take_while { |root_path, input_path| root_path == input_path }
       output_path = matchs.map(&:first)
       common_path = output_path.join("/")
-      input_path.sub(common_path, '').sub(/^\//, '')
+      input_path.sub(common_path, '').sub(%r{^/}, '')
     end
 
     def assert_format(format)
@@ -84,8 +91,11 @@ module Steroids
     end
 
     def notify(level, input)
-      if @notifier.respond_to?(:call) && input.is_a?(Exception) && [:error, :warn].include?(level)
-        @notifier.call(input)
+      # The notifier is class-level (`Steroids::Logger.notifier = proc`); the
+      # instance-side `@notifier` is always unset, so read through the class.
+      notifier = self.class.notifier
+      if notifier.respond_to?(:call) && input.is_a?(Exception) && [:error, :warn].include?(level)
+        notifier.call(input)
       end
     end
 
@@ -97,7 +107,7 @@ module Steroids
 
     def format_timestamp(input)
       if input.respond_to?(:timestamp) && input.timestamp.is_a?(DateTime)
-        "(at #{input.timestamp.to_time.to_s})"
+        "(at #{input.timestamp.to_time})"
       end
     end
 
@@ -105,7 +115,7 @@ module Steroids
       [
         "\n#{Rainbow("▶").magenta} #{input != exception ? input : nil}",
         "#{Rainbow(exception.class.to_s).red} -- #{Rainbow(exception.message.to_s.upcase_first).magenta}",
-        exception.respond_to?(:id) && "[ID: #{exception.id.to_s}]",
+        exception.respond_to?(:id) && "[ID: #{exception.id}]",
         format_timestamp(exception),
       ].compact_blank.join(" ")
     end
@@ -115,28 +125,35 @@ module Steroids
     end
 
     def format_cause(input)
-      cause_message = assert_attribute(input, :cause_message) || assert_attribute(input.cause, :message) || "Unknown error"
+      cause_message = assert_attribute(input,
+                                       :cause_message) || assert_attribute(input.cause, :message) || "Unknown error"
       [
-        Rainbow("\n  ➤ Cause: #{input.cause.class.name}").cyan + " -- #{cause_message.to_s}",
+        Rainbow("\n  ➤ Cause: #{input.cause.class.name}").cyan + " -- #{cause_message}",
         input.cause.respond_to?(:record) && input.cause.record && "(#{input.cause.record.class.name})"
       ].compact_blank.join(" ")
     end
 
-    def format_backtrace(input)
+    def format_backtrace(_input)
       if @backtrace_verbosity == :full
-        "  " + @backtrace.map do |path|
-          clean_path(path.to_s)
-        end.join("\n  ") if @backtrace.any?
+        # @backtrace can be nil when the exception was instantiated but never
+        # raised (e.g. `StandardError.new("msg")` passed through Logger.print).
+        if @backtrace&.any?
+          "  " + @backtrace.map do |path|
+            clean_path(path.to_s)
+          end.join("\n  ")
+        end
       elsif @backtrace_verbosity == :concise
         format_origin
       end
     end
 
     def format_errors(input)
-      "  • " + input.errors.map do |error|
-        error_class = input.try(:record) || input.is_a?(Exception) ? input.class.name : "Error"
-        "#{error_class}: #{error}"
-      end.join("\n  • ") if input.errors.any?
+      if input.errors.any?
+        "  • " + input.errors.map do |error|
+          error_class = input.try(:record) || input.is_a?(Exception) ? input.class.name : "Error"
+          "#{error_class}: #{error}"
+        end.join("\n  • ")
+      end
     end
 
     def format_context(input)
@@ -154,7 +171,10 @@ module Steroids
           assert_attribute(@exception, :cause) && format_cause(@exception)
         ].compact_blank.join("\n") + "\n"
       else
-        decorator = "\n#{Rainbow("▶").magenta} #{Rainbow("Steroids::Logger").send(color)} -- #{Rainbow(level.to_s).send(color)}:"
+        marker = Rainbow("▶").magenta
+        label  = Rainbow("Steroids::Logger").send(color)
+        level_label = Rainbow(level.to_s).send(color)
+        decorator = "\n#{marker} #{label} -- #{level_label}:"
         [
           @format == :decorated && decorator,
           input,
@@ -171,7 +191,7 @@ module Steroids
       attr_accessor :notifier
 
       def print(input = nil, exception: nil, verbosity: nil, format: :decorated)
-        self.new(input, exception:, verbosity:, format:).print
+        new(input, exception:, verbosity:, format:).print
       end
     end
   end

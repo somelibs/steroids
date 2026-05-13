@@ -53,11 +53,11 @@ module Steroids
 
       reporter.report(exception, handled: true, context: context)
       true
-    rescue StandardError => delivery_error
+    rescue => e
       # Never let the observability seam itself raise. Best-effort log and
       # swallow so the calling code's existing rescue path is not disturbed.
       warn "[Steroids::ErrorReporter] delivery failed: " \
-           "#{delivery_error.class}: #{delivery_error.message}"
+           "#{e.class}: #{e.message}"
       false
     end
   end

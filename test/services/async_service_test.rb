@@ -89,6 +89,48 @@ class AsyncServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # Captures init kwargs at construction time so the worker round-trip test can
+  # assert that AsyncServiceJob#perform deserialized the params correctly.
+  # Used in place of singleton_class alias_method gymnastics on a shared fixture.
+  class ConstructorSpyService < Steroids::Services::Base
+    class << self
+      attr_accessor :captured_args
+    end
+
+    def initialize(**kwargs)
+      self.class.captured_args = kwargs
+    end
+
+    def process
+      :ok
+    end
+  end
+
+  # Class-level counter callback — lets the worker control-flag test increment a
+  # counter via a normal `before_process` callback without monkey-patching a
+  # shared fixture mid-test.
+  class CallbackCounterService < Steroids::Services::Base
+    before_process :bump
+
+    class << self
+      attr_accessor :runs
+    end
+
+    def initialize
+      self.class.runs ||= 0
+    end
+
+    def process
+      :ok
+    end
+
+    private
+
+    def bump
+      self.class.runs += 1
+    end
+  end
+
   # ------------------------------------------------------------------------------------------------
   # Setup — capture all enqueued jobs without running them inline.
   # ------------------------------------------------------------------------------------------------
@@ -265,48 +307,36 @@ class AsyncServiceTest < ActiveSupport::TestCase
   # ------------------------------------------------------------------------------------------------
 
   test "Steroids::AsyncServiceJob.perform_now re-instantiates and runs the service" do
-    # No `process` side-effect is observable on the *enqueuing* instance (the worker builds a fresh
-    # one), so prove the round-trip by stubbing `.new` and asserting it was constructed with the
-    # de-serialized init opts.
-    captured_args = nil
-    MultiplyService.singleton_class.send(:alias_method, :__original_new, :new)
-    MultiplyService.singleton_class.send(:define_method, :new) do |**kwargs|
-      captured_args = kwargs
-      __original_new(**kwargs)
-    end
+    # The worker builds a fresh instance, so we can't observe state on the enqueuing one.
+    # ConstructorSpyService captures its init kwargs into a class attribute — proving the
+    # round-trip without mutating a shared fixture.
+    ConstructorSpyService.captured_args = nil
 
-    begin
-      Steroids::AsyncServiceJob.perform_now(
-        class_name: "AsyncServiceTest::MultiplyService",
-        params: { value: 6, multiplier: 7 }
-      )
-    ensure
-      MultiplyService.singleton_class.send(:alias_method, :new, :__original_new)
-      MultiplyService.singleton_class.send(:remove_method, :__original_new)
-    end
+    Steroids::AsyncServiceJob.perform_now(
+      class_name: "AsyncServiceTest::ConstructorSpyService",
+      params: { value: 6, multiplier: 7 }
+    )
 
-    assert_equal({ value: 6, multiplier: 7 }, captured_args)
+    assert_equal({ value: 6, multiplier: 7 }, ConstructorSpyService.captured_args)
   end
 
   test "AsyncServiceJob.perform_now honours skip_callbacks via control:" do
-    # The job constructs a fresh instance, so we can't assert against the original. Instead, prove
-    # skip_callbacks is respected by stubbing the callback runner to track calls.
-    callback_runs = 0
-    CallbackService.class_eval do
-      define_method(:setup) { callback_runs += 1 }
-    end
+    # CallbackCounterService tracks before_process invocations on a class attribute, so
+    # we can run two worker round-trips back-to-back and assert that `skip_callbacks: true`
+    # suppresses the callback while the default path runs it.
+    CallbackCounterService.runs = 0
 
     Steroids::AsyncServiceJob.perform_now(
-      class_name: "AsyncServiceTest::CallbackService",
+      class_name: "AsyncServiceTest::CallbackCounterService",
       params: {},
       control: { skip_callbacks: true }
     )
-    assert_equal 0, callback_runs
+    assert_equal 0, CallbackCounterService.runs
 
     Steroids::AsyncServiceJob.perform_now(
-      class_name: "AsyncServiceTest::CallbackService",
+      class_name: "AsyncServiceTest::CallbackCounterService",
       params: {}
     )
-    assert_equal 1, callback_runs
+    assert_equal 1, CallbackCounterService.runs
   end
 end

@@ -5,9 +5,9 @@ module Steroids
 
       included do
         def noticable_binding
-          Proc.new do |concern|
-            if self.respond_to?(:noticable) && concern.respond_to?(:noticable)
-              self.noticable.merge(concern.noticable)
+          proc do |concern|
+            if respond_to?(:noticable) && concern.respond_to?(:noticable)
+              noticable.merge(concern.noticable)
             end
           end
         end

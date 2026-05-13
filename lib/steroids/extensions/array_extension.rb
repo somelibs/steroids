@@ -4,7 +4,7 @@ module Steroids
       class ElementNotFound < StandardError; end
 
       def cast(value, indifferent_access = false)
-        self.find do |item|
+        find do |item|
           indifferent_access ? (item.to_sym == value&.to_sym) : (item == value)
         end or raise ElementNotFound.new("Cast: Element not found (#{value})")
       end

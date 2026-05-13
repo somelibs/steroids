@@ -5,7 +5,7 @@
 **License:** MIT.
 **Required Ruby:** `>= 3.3`. **Required Rails:** `>= 7` (Gemfile pins `~> 7.1`).
 **Author:** Paul Reboh (`paul@reboh.net`).
-**Repo:** https://github.com/somelibs/steroids (a Bernstein-tracking remote also exists at `github.com/bernstein-io/steroids`).
+**Repo:** https://github.com/somelibs/steroids.
 
 ## Why it exists
 
@@ -20,7 +20,7 @@ Steroids opinionates the patterns a Rails application uses most:
 
 ## Who uses it
 
-A small handful of Rails apps within the author's orbit (the Bernstein org keeps a fork). It is **not** a general-purpose gem yet — the docs and README assume a reader who already knows the patterns.
+A small handful of Rails apps within the author's orbit. It is **not** a general-purpose gem yet — the docs and README assume a reader who already knows the patterns.
 
 ## Distribution
 

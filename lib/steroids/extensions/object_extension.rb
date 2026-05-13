@@ -10,7 +10,7 @@ module Steroids
 
         applied_arguments = block.dynamic_arguments_for(given_arguments, given_options)
         applied_options = block.dynamic_options_for(given_options)
-        self.instance_exec(*applied_arguments, **applied_options, &block)
+        instance_exec(*applied_arguments, **applied_options, &block)
       end
 
       # TODO: Rename to try_apply and implement/alias try_send
@@ -20,12 +20,12 @@ module Steroids
         method = method(method_name)
         applied_arguments = method.dynamic_arguments_for(given_arguments, given_options)
         applied_options = method.dynamic_options_for(given_options)
-        self.send(method_name, *applied_arguments, **applied_options, &block)
+        send(method_name, *applied_arguments, **applied_options, &block)
       end
 
       # TODO: Rename to send_apply
       def send_apply!(method_name, *given_arguments, **given_options, &block)
-        return NoMethodError.new("Send apply", method_name) unless self.respond_to?(method_name, true)
+        return NoMethodError.new("Send apply", method_name) unless respond_to?(method_name, true)
 
         send_apply(method_name, *given_arguments, **given_options, &block)
       end
@@ -45,8 +45,8 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def try_method(method_name)
-        if self.respond_to?(method_name, true)
-          self.method(method_name)
+        if respond_to?(method_name, true)
+          method(method_name)
         end
       end
 
@@ -55,14 +55,14 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def typed(expected_type)
-        return itself if instance_of?(expected_type) || itself == nil
+        itself if instance_of?(expected_type) || itself.nil?
       end
 
       def typed!(expected_type)
         typed_itself = typed(expected_type)
         return typed_itself if typed_itself == itself
 
-        message = "Expected #{self.inspect} to be an instance of #{expected_type.inspect}"
+        message = "Expected #{inspect} to be an instance of #{expected_type.inspect}"
         TypeError.new(message).tap do |exception|
           exception.set_backtrace(caller)
           raise exception
@@ -78,7 +78,7 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def ifnil(default)
-        itself == nil ? default : itself
+        itself.nil? ? default : itself
       end
 
       # --------------------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ module Steroids
       def freeze
         if self.class.respond_to?(:steroids_attributes_set)
           self.class.steroids_attributes_set&.each do |attribute_name|
-            self.send(attribute_name)
+            send(attribute_name)
           end
         end
         super
@@ -99,19 +99,19 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def serializable?(include_object = true)
-        if self.is_a?(Hash)
-          self.all? do |key, value|
+        if is_a?(Hash)
+          all? do |key, value|
             key.serializable?(include_object) && value.serializable?(include_object)
           end
-        elsif self.is_a?(Array)
-          self.all? do |value|
+        elsif is_a?(Array)
+          all? do |value|
             value.serializable?(include_object)
           end
-        elsif self.is_a?(String) || self.is_a?(Symbol) || self.is_a?(Numeric) ||
-          self.is_a?(TrueClass) || self.is_a?(FalseClass) || self.is_a?(NilClass)
+        elsif is_a?(String) || is_a?(Symbol) || is_a?(Numeric) ||
+              is_a?(TrueClass) || is_a?(FalseClass) || is_a?(NilClass)
           true
         elsif include_object == true
-          self.respond_to?(:as_json) && self.as_json.serializable?(include_object)
+          respond_to?(:as_json) && as_json.serializable?(include_object)
         else
           false
         end
@@ -122,16 +122,16 @@ module Steroids
 
         case self
         when Hash
-          self.to_h.transform_values { |value| value.deep_serialize(include_object) }
+          to_h.transform_values { |value| value.deep_serialize(include_object) }
         when Array
-          self.map { |value| value.deep_serialize(include_object) }
+          map { |value| value.deep_serialize(include_object) }
         when String, Symbol, Numeric, TrueClass, FalseClass, NilClass
           self
         else
-          if include_object && self.respond_to?(:to_h)
-            self.to_h.deep_serialize(include_object)
-          elsif include_object && self.respond_to?(:as_json)
-            self.as_json.deep_serialize(include_object)
+          if include_object && respond_to?(:to_h)
+            to_h.deep_serialize(include_object)
+          elsif include_object && respond_to?(:as_json)
+            as_json.deep_serialize(include_object)
           end
         end
       end
