@@ -319,9 +319,9 @@ end
 
 ## Async Services
 
-Services can run asynchronously using Sidekiq. **Important:** In development, test environments, and Rails console, async services automatically run synchronously for easier debugging.
+Async-ness is a **caller** decision, not a property of the service. Every service defines a single `def process`; the caller picks how to dispatch it: `.call` runs inline, `.call_async` enqueues `Steroids::AsyncServiceJob`. The two entry points sit side-by-side on every service.
 
-### Defining an Async Service
+### Defining a Service
 
 ```ruby
 class SendNewsletterService < Steroids::Services::Base
@@ -332,8 +332,7 @@ class SendNewsletterService < Steroids::Services::Base
     @content = content
   end
 
-  # Use async_process instead of process
-  def async_process
+  def process
     User.subscribed.find_each do |user|
       NewsletterMailer.weekly(user, @subject, @content).deliver_now
     end
@@ -341,45 +340,108 @@ class SendNewsletterService < Steroids::Services::Base
     errors.add("Newsletter delivery failed", e)
   end
 end
+```
 
-# Behavior varies by environment:
-# - Production with Sidekiq running: Runs in background
-# - Development/Test/Console: Runs synchronously (immediate execution)
+### Dispatching
+
+```ruby
+# Inline — blocks the caller until `process` returns.
 SendNewsletterService.call(subject: "Weekly Update", content: "...")
+SendNewsletterService.call_sync(subject: "Weekly Update", content: "...")  # explicit alias
 
-# Force synchronous execution in any environment
-SendNewsletterService.call(subject: "Test", content: "...", async: false)
+# Background — enqueues Steroids::AsyncServiceJob and returns the job handle.
+SendNewsletterService.call_async(subject: "Weekly Update", content: "...")
 ```
 
-### Async Execution Logic
+There is **no auto-detection**: `.call` never enqueues, `.call_async` never runs inline. This is a deliberate change from earlier Steroids versions, which used an `async_process` method + a `Sidekiq.server?` heuristic to decide. The heuristic was a footgun — services that worked sync in checkout would silently become async on the next caller and race the work they were supposed to guarantee. Explicit dispatch removes that class of bug.
 
-The service automatically determines execution mode based on:
+### Forcing background-only execution
+
+For work that must never block the request thread, mark the class with `async_only!`:
 
 ```ruby
-# Runs async when ALL conditions are met:
-# 1. Sidekiq is running (workers available)
-# 2. NOT in Rails console
-# 3. NOT in development (unless Sidekiq is running)
-# 4. async: true (default)
+class SpawnAccountsFromStripeService < Steroids::Services::Base
+  async_only!  # `.call` and `.call_sync` raise AsyncOnlyError; only `.call_async` works
 
-# Otherwise runs synchronously for easier debugging
+  def process
+    # heavy, multi-minute Stripe pagination
+  end
+end
 ```
 
-### Important Notes for Async Services
+### Per-mode success notices
 
-1. **Parameters must be serializable** (strings, numbers, hashes, arrays)
-2. **Don't pass ActiveRecord objects** - pass IDs instead
-3. **Use `async_process` method** instead of `process`
-4. **Runs via `AsyncServiceJob`** with Sidekiq in production
-5. **Auto-synchronous in dev/test** for easier debugging
+`success_notice` accepts either a plain String (single message for both modes) or a Hash keyed by `:sync` / `:async` so the same service can render an accurate flash in either dispatch mode:
 
 ```ruby
-# ❌ WRONG - AR object won't serialize
-AsyncService.call(user: current_user)
+class SendNewsletterService < Steroids::Services::Base
+  # Hash form — explicit per-mode messages
+  success_notice sync:  "Newsletter sent to all subscribers",
+                 async: "Newsletter queued — subscribers notified shortly"
+end
 
-# ✅ CORRECT - Pass serializable data
-AsyncService.call(user_id: current_user.id)
+class FlagAccountService < Steroids::Services::Base
+  # String form — same message both ways; in async dispatch the resolver
+  # appends " (async)" so it stays accurate ("Account flagged (async)")
+  # without claiming the work has actually completed yet.
+  success_notice "Account flagged"
+end
 ```
+
+Resolution rules:
+
+| `success_notice` declaration | sync mode | async mode |
+|---|---|---|
+| `"<string>"` | `"<string>"` | `"<string> (async)"` |
+| `sync: "S", async: "A"` | `"S"` | `"A"` |
+| `async: "A"` (sync key missing) | `"<ClassName> succeeded"` fallback | `"A"` |
+| `sync: "S"` (async key missing) | `"S"` | `"Queued for background processing."` fallback |
+| (not declared) | `"<ClassName> succeeded"` fallback | `"Queued for background processing."` fallback |
+
+In `service :name, ..., async: true` controller helpers, the `preview` instance the block yields after enqueue automatically has its `dispatch_mode` flipped to `:async`, so `service.notice` in the controller block reads the right message without any extra wiring.
+
+### Serializability is validated at the call site
+
+`.call_async` walks the init args **before** enqueuing. If anything is not serializable for ActiveJob (Procs, IO, anonymous classes, unpersisted records…), it raises `Steroids::Services::Base::NonSerializableArgumentError` with a dotted-path list of every offender — no more silent worker-side `SerializationError`.
+
+```ruby
+# ✅ Serializable — primitives, persisted AR records, GlobalID-aware objects
+SendNewsletterService.call_async(subject_id: 42, recipient: persisted_user)
+
+# ❌ Raises NonSerializableArgumentError listing the bad args:
+SendNewsletterService.call_async(after: ->(u) { ... }, sink: $stdout)
+# => "subject (Proc)\nsink (IO)\nUse .call (synchronous) instead, or pass only…"
+```
+
+### Control flags
+
+`force:` and `skip_callbacks:` are accepted alongside init args on both entry points; they're routed to the runner (not into `initialize`). In async mode they're forwarded to the worker via the job's `control:` argument.
+
+```ruby
+MyService.call(value: 1, skip_callbacks: true)
+MyService.call_async(value: 1, skip_callbacks: true)  # worker honours it
+```
+
+### The `service` macro in controllers / parent services
+
+`service` declares a helper method that dispatches to a Steroids service. Pass `async: true` to enqueue instead of running inline. The block form works in both modes:
+
+```ruby
+class BackofficeController < ApplicationController
+  include Steroids::Support::ServicableMethods
+
+  service :sync_price,     class_name: "SyncPriceService", async: true
+  service :update_settings, class_name: "UpdateSettingsService"  # sync default
+
+  def sync
+    sync_price(price_id: params[:id]) do |service, flash_key:|
+      redirect_to price_path, flash_key => service.notice
+    end
+  end
+end
+```
+
+In async mode, the block fires immediately after enqueue, with a fresh service instance carrying only the class-declared `success_notice` — the real work happens later in the worker.
 
 ## Serializers (Deprecated)
 

@@ -7,30 +7,44 @@ module Steroids
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
-      class AmbiguousProcessMethodError < Steroids::Errors::Base; end
+      # Init-time options that are NOT forwarded to `initialize`, but instead
+      # control the .call invocation. Anything else passed at the class entry
+      # point flows into the service's `initialize(**options)`.
+      CONTROL_OPTIONS = %i[force skip_callbacks].freeze
 
-      class AsyncProcessArgumentError < Steroids::Errors::Base; end
+      # Argument-position safe set for `call_async` serializability validation —
+      # values whose presence in init options is unambiguously serializable by
+      # ActiveJob's GlobalID / type registry.
+      PRIMITIVE_SERIALIZABLE = [
+        String, Symbol, Numeric, TrueClass, FalseClass, NilClass,
+        Date, Time, DateTime
+      ].freeze
+
+      class AsyncOnlyError < Steroids::Errors::Base
+        self.default_message = "Service is marked async_only! — must be enqueued via .call_async"
+      end
+
+      class NonSerializableArgumentError < Steroids::Errors::Base
+        self.default_message = "Service args contain values that cannot be serialized for background execution"
+      end
 
       class RuntimeError < Steroids::Errors::Base
         self.default_message = "Runtime error"
       end
 
       # --------------------------------------------------------------------------------------------
-      # Core public interface
+      # Instance API — `.call` runs `process` inline with the configured callbacks
+      # and transaction wrap. The class-level `.call` / `.call_async` entry points
+      # below delegate here.
       # --------------------------------------------------------------------------------------------
 
-      def call(*args, **options, &block)
+      def call(**options, &block)
         outcome = nil
         return unless process_method.present?
 
-        @steroids_force = (!!options[:force]) || false
-        @steroids_skip_callbacks = (!!options[:skip_callbacks]) || @@skip_callbacks || false
-        @steroids_async = options[:async] if options.key?(:async)
-        if process_method.name == :async_process
-          outcome = schedule_process(*args, **options, &block)
-        else
-          outcome = exec_process(*args, **options, &block)
-        end
+        @steroids_force = !!options[:force] || false
+        @steroids_skip_callbacks = !!options[:skip_callbacks] || @@skip_callbacks || false
+        outcome = exec_process(&block)
       ensure
         if block_given?
           block.apply(self, outcome, noticable: self.noticable, flash_key: self.noticable.flash_key)
@@ -42,12 +56,12 @@ module Steroids
       private
 
       # --------------------------------------------------------------------------------------------
-      # Run process
+      # Run process inline (with callbacks, transaction, error capture).
       # --------------------------------------------------------------------------------------------
 
-      def exec_process(*args, **options, &block)
+      def exec_process(&block)
         outcome = process_wrapper do
-          run_before_callbacks(*args, **options) unless @steroids_skip_callbacks
+          run_before_callbacks unless @steroids_skip_callbacks
           process_method.call.tap do |outcome|
             drop! if !block_given? && errors.any?
             run_after_callbacks(outcome) unless @steroids_skip_callbacks
@@ -86,44 +100,8 @@ module Steroids
       end
       alias_method :report_to_observability!, :report_error!
 
-      def schedule_process(*args, **options, &block)
-        perform_async = !!(options[:async].ifnil(!Sidekiq.server?))
-        if self.respond_to?(:async_process, true)
-          AsyncServiceJob.new(
-            class_name: self.class.name,
-            params: @_steroids_serialized_init_options
-          ).tap do |job|
-            if async_exec?(perform_async)
-              job.enqueue
-            elsif self.class.async_only? && options[:async] != false
-              errors.add("This job requires a background worker (Sidekiq) to be running")
-            else
-              exec_process(*args, **options, &block)
-            end
-          end
-        end
-      end
-
       def process_method
-        self.class.validate_process_definition!
-        @process_method ||= (try_method(:process) || try_method(:async_process))
-      end
-
-      def async_exec?(perform_async)
-        return false unless perform_async == true
-
-        # Outside dev/test, always enqueue. Sidekiq is the source of truth — if its
-        # Redis is briefly unreachable, let the enqueue itself raise loudly rather
-        # than silently falling back to running the service inline in the request
-        # thread (which routinely blew the rack-timeout budget on long-running jobs).
-        return true unless Rails.env.development? || Rails.env.test?
-
-        # Dev/test: only enqueue when a Sidekiq worker is actually registered;
-        # otherwise run inline so user-triggered jobs still flow without Sidekiq.
-        Sidekiq::ProcessSet.new.any?
-      rescue RedisClient::CannotConnectError, Errno::ENOENT, Errno::ECONNREFUSED => e
-        Steroids::Logger.print(e)
-        false
+        @process_method ||= try_method(:process)
       end
 
       # --------------------------------------------------------------------------------------------
@@ -140,13 +118,13 @@ module Steroids
         errors.add(error.message)
       end
 
-      def run_before_callbacks(*args, **options)
+      def run_before_callbacks
         if self.class.steroids_before_callbacks.is_a?(Array)
           self.class.steroids_before_callbacks.each do |callback|
-            send_apply(callback, *args, **options)
+            send_apply(callback)
           end
         end
-        send_apply(:before_process, *args, **options)
+        send_apply(:before_process)
       end
 
       def run_after_callbacks(outcome)
@@ -173,9 +151,57 @@ module Steroids
       end
 
       class << self
-        def async?
-          self.private_instance_methods.include?(:async_process) || self.instance_methods.include?(:async_process)
+        # ------------------------------------------------------------------------------------------
+        # Class API
+        # ------------------------------------------------------------------------------------------
+        #
+        # `.call`        → run `process` inline. Raises on async_only! services.
+        # `.call_sync`   → alias for `.call` (explicit at call sites that read better with it).
+        # `.call_async`  → enqueue Steroids::AsyncServiceJob. Validates serializability of init
+        #                  args eagerly so non-serializable values fail fast at the call site
+        #                  (clear error listing each offending arg + class) instead of blowing up
+        #                  inside the worker.
+        #
+        # Init args vs control flags: any keyword listed in CONTROL_OPTIONS
+        # (`force:`, `skip_callbacks:`) is routed to the instance `.call`; everything else flows
+        # into `initialize(**options)`.
+        # ------------------------------------------------------------------------------------------
+
+        def call(*args, **options, &block)
+          if async_only?
+            raise AsyncOnlyError.new(
+              "#{name} is marked `async_only!` — use `#{name}.call_async` instead. " \
+              "`.call` / `.call_sync` run inline, which is forbidden for this service " \
+              "(typically because the work is too long for the request thread)."
+            )
+          end
+
+          init_opts, ctrl_opts = split_options(options)
+          new(*args, **init_opts).call(**ctrl_opts, &block)
         end
+        alias_method :call_sync, :call
+
+        def call_async(*args, **options)
+          if args.any?
+            raise ArgumentError.new(
+              "#{name}.call_async does not accept positional arguments — pass keyword args only " \
+              "so they can be serialized for background execution."
+            )
+          end
+
+          init_opts, ctrl_opts = split_options(options)
+          validate_serializable!(init_opts)
+
+          Steroids::AsyncServiceJob.perform_later(
+            class_name: name,
+            params: init_opts.deep_serialize,
+            control: ctrl_opts
+          )
+        end
+
+        # ------------------------------------------------------------------------------------------
+        # Class macros
+        # ------------------------------------------------------------------------------------------
 
         def async_only!
           @async_only = true
@@ -183,23 +209,6 @@ module Steroids
 
         def async_only?
           !!@async_only
-        end
-
-        def call(*args, **options, &block)
-          new(*args, **options).call(&block)
-        end
-
-        def new(*arguments, **options)
-          validate_process_definition!
-          instance = super
-          if self.async?
-            if arguments.empty? && options.serializable?
-              instance.instance_variable_set(:"@_steroids_serialized_init_options", options.deep_serialize)
-            else
-              raise AsyncProcessArgumentError.new("Async services require serializable options")
-            end
-          end
-          instance
         end
 
         def steroids_before_callbacks
@@ -210,12 +219,6 @@ module Steroids
           @steroids_after_callbacks ||= []
         end
 
-        def validate_process_definition!
-          if async? && (self.private_instance_methods.include?(:process) || self.instance_methods.include?(:process))
-            raise AmbiguousProcessMethodError.new("Can't define both `process` and `async_process`")
-          end
-        end
-
         protected
 
         def before_process(method)
@@ -224,6 +227,66 @@ module Steroids
 
         def after_process(method)
           steroids_after_callbacks << method
+        end
+
+        private
+
+        # ------------------------------------------------------------------------------------------
+        # Internals
+        # ------------------------------------------------------------------------------------------
+
+        def split_options(options)
+          ctrl = {}
+          init = {}
+          options.each do |key, value|
+            (CONTROL_OPTIONS.include?(key) ? ctrl : init)[key] = value
+          end
+          [init, ctrl]
+        end
+
+        # Validates that the given options can be serialized for ActiveJob. Walks
+        # nested hashes/arrays and accumulates every offending leaf (with its
+        # dotted path + class name) before raising — so one error message tells
+        # the developer everything that needs fixing.
+        def validate_serializable!(options)
+          offenders = collect_unserializable(options)
+          return if offenders.empty?
+
+          raise NonSerializableArgumentError.new(
+            "#{name}.call_async cannot enqueue — the following arguments are not serializable " \
+            "for ActiveJob:\n" \
+            "#{offenders.map { |entry| "  - #{entry}" }.join("\n")}\n" \
+            "Use `.call` (synchronous) instead, or pass only serializable values: primitives, " \
+            "Symbols, Date/Time/DateTime, ActiveRecord records (persisted), GlobalID-aware objects, " \
+            "Arrays/Hashes of those."
+          )
+        end
+
+        def collect_unserializable(value, path: nil)
+          case value
+          when *PRIMITIVE_SERIALIZABLE
+            []
+          when Hash
+            value.flat_map do |key, val|
+              sub_path = path ? "#{path}.#{key}" : key.to_s
+              collect_unserializable(val, path: sub_path)
+            end
+          when Array
+            value.each_with_index.flat_map do |val, index|
+              sub_path = path ? "#{path}[#{index}]" : "[#{index}]"
+              collect_unserializable(val, path: sub_path)
+            end
+          else
+            if defined?(BigDecimal) && value.is_a?(BigDecimal)
+              []
+            elsif defined?(ActiveRecord::Base) && value.is_a?(ActiveRecord::Base)
+              value.persisted? ? [] : ["#{path || '(root)'} (unpersisted #{value.class})"]
+            elsif value.respond_to?(:to_global_id)
+              []
+            else
+              ["#{path || '(root)'} (#{value.class})"]
+            end
+          end
         end
       end
     end

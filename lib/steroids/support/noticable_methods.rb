@@ -77,12 +77,27 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       class NoticableRuntime
+        # Modes the success notice resolver knows about. `:sync` is the default
+        # (set in `initialize`); the `service` macro flips it to `:async` on the
+        # un-run preview instance it yields after `.call_async` enqueues.
+        DISPATCH_MODES = %i[sync async].freeze
+
+        # Generic fallbacks when a service did not declare a per-mode notice.
+        ASYNC_FALLBACK_NOTICE = "Queued for background processing.".freeze
+        # Suffix appended to a plain-String `success_notice` when the dispatch
+        # mode is async — so a service that only declared one message still
+        # surfaces something accurate ("Newsletter sent (async)") without
+        # claiming the work has actually completed yet.
+        ASYNC_PLAIN_SUFFIX = " (async)".freeze
+
         attr_reader :notices
         attr_reader :errors
+        attr_accessor :dispatch_mode
 
-        def initialize(concern = [], success_notice: nil)
+        def initialize(concern = [], success_notice: nil, dispatch_mode: :sync)
           @concern = concern
-          @success_notice = success_notice.presence || success_notice_placeholder
+          @success_notice = success_notice
+          @dispatch_mode = DISPATCH_MODES.cast(dispatch_mode)
           @errors = NoticableCollection.new(:errors)
           @notices = NoticableCollection.new(:notices)
         end
@@ -91,7 +106,7 @@ module Steroids
           if self.errors?
             @errors.full_messages
           else
-            @notices.full_messages.presence || @success_notice
+            @notices.full_messages.presence || resolved_success_notice
           end
         end
 
@@ -124,6 +139,32 @@ module Steroids
         end
 
         private
+
+        # Resolves the success notice for the current `@dispatch_mode`.
+        #
+        # Accepts either form of `success_notice` declaration:
+        #   - **String** — applied as-is in sync mode; in async mode, the
+        #     " (async)" suffix is appended so the message remains accurate
+        #     ("Newsletter sent (async)") without claiming the work is done.
+        #   - **Hash with `:sync` and/or `:async` keys** — the key matching the
+        #     current mode is used; if missing, falls back to the generic
+        #     "Queued for background processing." (async) or the humanized
+        #     class-name placeholder (sync).
+        def resolved_success_notice
+          case @success_notice
+          when Hash
+            @success_notice[@dispatch_mode].presence || mode_fallback_notice
+          when String
+            return @success_notice if @dispatch_mode == :sync
+            "#{@success_notice}#{ASYNC_PLAIN_SUFFIX}"
+          else
+            mode_fallback_notice
+          end
+        end
+
+        def mode_fallback_notice
+          @dispatch_mode == :async ? ASYNC_FALLBACK_NOTICE : success_notice_placeholder
+        end
 
         def success_notice_placeholder
           humanized_class_name = @concern.class.name.split("::").last.underscore.humanize

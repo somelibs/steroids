@@ -59,19 +59,13 @@ class MyService < Steroids::Services::Base
   end
 
   def process
-    # Synchronous processing
-    perform_operation
-  end
-
-  # OR for async:
-  def async_process
-    # Asynchronous processing (runs in background job)
     perform_operation
   end
 end
 
-# Usage:
-MyService.call(user: current_user, data: params)
+# Usage — caller picks per-invocation:
+MyService.call(user: current_user, data: params)         # inline
+MyService.call_async(user_id: 1, data: params)           # enqueues Steroids::AsyncServiceJob
 ```
 
 ### 2. Noticable Methods - Error & Notice Handling
@@ -155,26 +149,62 @@ class MyService < Steroids::Services::Base
 end
 ```
 
-### 4. Async Services
+### 4. Async Dispatch
 
-Services can run asynchronously with Sidekiq:
+Async-ness is a caller decision, not a service-class property. Every service defines a single `def process`; callers pick `.call` (inline) or `.call_async` (enqueue `Steroids::AsyncServiceJob`).
 
 ```ruby
-class AsyncService < Steroids::Services::Base
-  # Use async_process instead of process
-  def async_process
+class HeavyService < Steroids::Services::Base
+  def process
     heavy_operation
   end
 end
 
-# Runs in background:
-AsyncService.call(serializable: 'data', only: true)
-
-# Force synchronous:
-AsyncService.call(data: data, async: false)
+HeavyService.call(record_id: 1)        # inline
+HeavyService.call_sync(record_id: 1)   # explicit alias for `.call`
+HeavyService.call_async(record_id: 1)  # enqueue
 ```
 
-**Important**: Async services require serializable parameters (strings, numbers, hashes, arrays - no AR objects).
+**No auto-detection.** `.call` never enqueues, `.call_async` never runs inline. (The old `async_process` method + `Sidekiq.server?` heuristic was removed — it produced silent race conditions when the same service was invoked from both sync and async paths.)
+
+For work that **must never** run inline, mark the class with `async_only!`:
+
+```ruby
+class MustBeAsync < Steroids::Services::Base
+  async_only!  # `.call` / `.call_sync` raise AsyncOnlyError
+
+  def process
+    long_running_work
+  end
+end
+```
+
+**Serializability is validated at the call site.** `.call_async` walks the init args before enqueueing and raises `Steroids::Services::Base::NonSerializableArgumentError` with a dotted-path list of every offender (Procs, IO, unpersisted records, anonymous classes). No more silent worker-side `SerializationError`.
+
+```ruby
+# ❌ Raises NonSerializableArgumentError listing `handler (Proc)`
+HeavyService.call_async(handler: ->(x) { x })
+
+# ✅ Primitives, persisted AR records, GlobalID-aware objects, Symbols, Date/Time
+HeavyService.call_async(record_id: 1, persisted_user: user)
+```
+
+**Control flags** (`force:`, `skip_callbacks:`) work on both entry points and are forwarded to the worker via the job's `control:` argument in async mode.
+
+**Per-mode success notices.** `success_notice` accepts either a plain String (single message for both modes — the resolver appends `" (async)"` to keep async-side messages accurate) or a Hash keyed by `:sync` / `:async`:
+
+```ruby
+class FlagAccountService < Steroids::Services::Base
+  success_notice "Account flagged"  # → sync: "Account flagged" · async: "Account flagged (async)"
+end
+
+class SendNewsletterService < Steroids::Services::Base
+  success_notice sync:  "Newsletter sent to all subscribers",
+                 async: "Newsletter queued — subscribers notified shortly"
+end
+```
+
+If only one mode-key is declared, the missing side falls back to a generic ("Queued for background processing." for async; "<ClassName> succeeded" for sync). In the `service :name, ..., async: true` controller helper, the preview instance the block yields has `dispatch_mode = :async` already set — `service.notice` in the block reads the right message automatically.
 
 ### 5. Servicable Methods
 
@@ -183,6 +213,7 @@ Controller integration via `service` macro:
 ```ruby
 class UsersController < ApplicationController
   service :create_user, class_name: "Users::CreateService"
+  service :sync_price,  class_name: "SyncPriceService", async: true   # enqueue instead of inline
 
   def create
     create_user(user_params) do |service|
@@ -195,6 +226,8 @@ class UsersController < ApplicationController
   end
 end
 ```
+
+With `async: true`, the helper calls `.call_async` and the block fires immediately after enqueue with a fresh service instance carrying only the class-declared `success_notice`. Worker-side errors do not surface to the request.
 
 ### 6. Type System
 
@@ -308,7 +341,7 @@ end
 2. **Async Services**: Parameters must be serializable
 3. **Transactions**: Services are wrapped in transactions by default
 4. **Flow Control**: Use `drop!` to halt execution with error
-5. **Success Notice**: Define with `success_notice` class method
+5. **Success Notice**: Define with `success_notice` (String, or `sync:`/`async:` Hash for per-mode messages)
 6. **Callbacks**: Use `before_process` and `after_process` for hooks
 
 ## Configuration
