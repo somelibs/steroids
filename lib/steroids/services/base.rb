@@ -7,6 +7,20 @@ module Steroids
       @@wrap_in_transaction = true
       @@skip_callbacks = false
 
+      # Per-class opt-out for the `ActiveRecord::Base.transaction` wrap. The
+      # global `@@wrap_in_transaction` default is still `true`; a service that
+      # primarily talks to a 3rd party (Stripe, etc.) should set this to false
+      # so the network round-trip doesn't hold a DB connection / extend a
+      # transaction boundary across an external call.
+      #
+      #   class SyncPriceService < Steroids::Services::Base
+      #     wrap_in_transaction false
+      #     def process; price.gateway.publish_once!; end
+      #   end
+      #
+      # When unset (nil), falls back to the global `@@wrap_in_transaction`.
+      class_attribute :wrap_in_transaction_override, instance_accessor: false, default: nil
+
       # Init-time options that are NOT forwarded to `initialize`, but instead
       # control the .call invocation. Anything else passed at the class entry
       # point flows into the service's `initialize(**options)`.
@@ -109,13 +123,20 @@ module Steroids
       # --------------------------------------------------------------------------------------------
 
       def process_wrapper(&block)
-        return block.call unless @@wrap_in_transaction
+        return block.call unless wrap_in_transaction?
 
         ActiveRecord::Base.transaction do
           block.call
         end
       rescue RuntimeError => e
         errors.add(e.message)
+      end
+
+      def wrap_in_transaction?
+        override = self.class.wrap_in_transaction_override
+        return @@wrap_in_transaction if override.nil?
+
+        override
       end
 
       def run_before_callbacks
@@ -223,6 +244,19 @@ module Steroids
 
         def async_only?
           !!@async_only
+        end
+
+        # Per-class opt-out for the AR transaction wrap. Use for services that
+        # primarily hit a 3rd-party API (Stripe, etc.) — wrapping the network
+        # call in a DB transaction holds a pooled connection open across the
+        # round-trip and pins the DB transaction lifetime to remote latency.
+        #
+        #   class SyncPriceService < Steroids::Services::Base
+        #     wrap_in_transaction false
+        #     def process; ...end
+        #   end
+        def wrap_in_transaction(value)
+          self.wrap_in_transaction_override = value
         end
 
         def steroids_before_callbacks

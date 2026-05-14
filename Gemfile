@@ -21,6 +21,12 @@ gem "rainbow", "~> 3.1", ">= 3.1.1"
 # Test dependencies
 gem "sqlite3", "~> 1.4", group: [:development, :test]
 
+group :development, :test do
+  gem "rspec", "~> 3.13"
+  gem "rspec-rails", "~> 7.1"
+  gem "simplecov", "~> 0.22", require: false
+end
+
 # Linting (development only)
 group :development do
   gem "rubocop", "~> 1.65", require: false

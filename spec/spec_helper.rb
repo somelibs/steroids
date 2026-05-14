@@ -1,47 +1,49 @@
+# frozen_string_literal: true
+
+if ENV["COVERAGE"]
+  require "simplecov"
+  SimpleCov.start do
+    add_filter %r{^/spec/}
+    add_filter %r{^/test/}
+    enable_coverage :branch
+    track_files "lib/**/*.rb"
+  end
+end
+
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
-# Set Rails environment before loading Rails
 ENV["RAILS_ENV"] = "test"
 
-require "minitest/autorun"
-require "minitest/pride"
-
-# Load Rails components needed for testing
 require "rails"
 require "active_support"
-require "active_support/test_case"
 require "active_support/core_ext"
 require "active_model"
 require "active_job"
 require "active_record"
+require "active_model_serializers"
+require "action_dispatch"
 
-# Create a minimal Rails application for testing
 module TestApp
   class Application < Rails::Application
     config.load_defaults Rails::VERSION::STRING.to_f
     config.eager_load = false
-    config.logger = Logger.new(nil) # Silence logs during tests
+    config.logger = Logger.new(nil)
   end
 end
 
-# Initialize the Rails app
 Rails.application.initialize!
 
-# Setup ActiveRecord with in-memory SQLite database
-ActiveRecord::Base.establish_connection(
-  adapter: "sqlite3",
-  database: ":memory:"
-)
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
 
-# Create a simple schema for testing
 ActiveRecord::Schema.define do
+  self.verbose = false
+
   create_table :test_records, force: true do |t|
     t.string :name
     t.timestamps
   end
 end
 
-# Mock Sidekiq if not available
 unless defined?(Sidekiq)
   module Sidekiq
     def self.server? = false
@@ -53,11 +55,8 @@ unless defined?(Sidekiq)
   end
 end
 
-# Load Steroids after Rails is initialized
 require "steroids"
 
-# Register custom error classes with Rails' exception wrapper
-# This is needed for the error classes to return their correct status codes
 ActionDispatch::ExceptionWrapper.rescue_responses.merge!(
   "Steroids::Errors::BadRequestError" => :bad_request,
   "Steroids::Errors::UnauthorizedError" => :unauthorized,
@@ -65,13 +64,25 @@ ActionDispatch::ExceptionWrapper.rescue_responses.merge!(
   "Steroids::Errors::NotFoundError" => :not_found,
   "Steroids::Errors::ConflictError" => :conflict,
   "Steroids::Errors::UnprocessableEntityError" => :unprocessable_content,
-  "Steroids::Errors::NotImplementedError" => :not_implemented,
-  "BaseErrorTest::CustomTestError" => :unprocessable_content
+  "Steroids::Errors::NotImplementedError" => :not_implemented
 )
 
-# Configure ActiveSupport
-ActiveSupport.test_order = :random
+RSpec.configure do |config|
+  config.expect_with :rspec do |expectations|
+    expectations.include_chain_clauses_in_custom_matcher_descriptions = true
+    expectations.syntax = :expect
+  end
 
-class ActiveSupport::TestCase
-  # Add common test helpers here
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  config.shared_context_metadata_behavior = :apply_to_host_groups
+  config.disable_monkey_patching!
+  config.order = :random
+  Kernel.srand config.seed
+
+  config.filter_run_when_matching :focus
+
+  config.example_status_persistence_file_path = ".rspec_status"
 end

@@ -27,6 +27,8 @@ AllCops:
 
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - "spec/**/*"
   AllowedPatterns:
     - "^\\s*#"  # don't penalize long comment headers / banners
 
@@ -106,6 +108,8 @@ Style/CaseEquality:
 # Lock the cop to compact form so kwarg-aware exceptions stay intact.
 Style/RaiseArgs:
   EnforcedStyle: compact
+  Exclude:
+    - "spec/**/*"
 
 # ----------------------------------------------------------------------------------------
 # Naming — the codebase uses some idiomatic Ruby names that trip default cops
@@ -166,6 +170,7 @@ Metrics/PerceivedComplexity:
 Metrics/BlockLength:
   Exclude:
     - "test/**/*"
+    - "spec/**/*"
     - "Rakefile"
 
 Metrics/ParameterLists:
@@ -189,6 +194,7 @@ Lint/MissingSuper:
 Lint/UnusedMethodArgument:
   Exclude:
     - "test/**/*"
+    - "spec/**/*"
 
 # Comments call out TODOs intentionally; don't gate on them.
 Lint/Debugger:
@@ -201,3 +207,15 @@ Lint/Debugger:
 inherit_mode:
   merge:
     - Exclude
+
+# ----------------------------------------------------------------------------------------
+# Per-directory overrides for specs
+# ----------------------------------------------------------------------------------------
+
+Style/ClassVars:
+  Exclude:
+    - "spec/**/*"
+
+Naming/VariableNumber:
+  Exclude:
+    - "spec/**/*"

@@ -102,3 +102,4 @@ tags
 
 config/google/*
 !config/google/.keep
+.rspec_status
