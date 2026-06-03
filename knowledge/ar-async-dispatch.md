@@ -97,7 +97,7 @@ This is what makes `redirect_to path, service.flash_key => service.notice` work 
 
 ## Test coverage
 
-`test/services/async_service_test.rb` (~310 lines, full rewrite during the 2026-05-13 batch) covers:
+`spec/steroids/services/async_dispatch_spec.rb` (plus `spec/steroids/services/option_split_spec.rb` and `spec/steroids/support/servicable_async_spec.rb`; RSpec since the 2026-06-03 migration) covers:
 - `.call` runs inline / doesn't enqueue
 - `.call_sync` alias
 - `.call_async` enqueues with the correct payload
@@ -119,4 +119,4 @@ The removed surface:
 - The new-time `@_steroids_serialized_init_options` capture — **gone**.
 - `schedule_process` and `async_exec?` (with the `Sidekiq.server?` heuristic) — **gone**.
 
-If you find references to any of these in a host app, they need to migrate to `.call_async` at the call site. See [[CHANGELOG]] `[Unreleased]` for the breaking-change writeup and [[wrapups/@2026-05-13-01-per-call-async-dispatch-rewrite]] for the full diff inventory.
+If you find references to any of these in a host app, they need to migrate to `.call_async` at the call site. See `CHANGELOG.md` `[Unreleased]` for the breaking-change writeup and [[wrapups/@2026-05-13-01-per-call-async-dispatch-rewrite]] for the full diff inventory.

@@ -20,8 +20,8 @@ module Steroids
       class_methods do
         # Declares a helper method that dispatches to a Steroids service.
         #
-        #   service :sync_price, class_name: "Apex::Tenet::Prices::SyncPriceService"
-        #   service :sync_bundles, class_name: "...::SyncBundlesService", async: true
+        #   service :sync_price, class_name: "Prices::SyncPriceService"
+        #   service :sync_bundles, class_name: "Bundles::SyncBundlesService", async: true
         #
         # The block form `do |service, flash_key:|` works in both sync and async
         # mode. In sync mode, the block fires after the service finishes — so

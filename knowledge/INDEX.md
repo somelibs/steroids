@@ -1,6 +1,6 @@
 # Knowledge Index
 
-**Last refreshed:** 2026-05-13
+**Last refreshed:** 2026-06-03
 **Project:** Steroids — Rails enhancement gem (v1.6.1)
 **Knowledge base:** 11 files (this index excluded)
 
@@ -45,7 +45,7 @@
 
 | File | Purpose |
 |------|---------|
-| [GUIDELINES.md](GUIDELINES.md) | Project-specific development guidelines (currently empty) |
+| [GUIDELINES.md](GUIDELINES.md) | Project-specific development guidelines (2 active: compact error-raise form, string-only noticable messages) |
 
 ---
 
@@ -53,11 +53,11 @@
 
 | Pattern | Count |
 |---------|-------|
-| Architecture documents (ar-*) | 7 |
+| Architecture documents (ar-*) | 8 |
 | Business documents (biz-*) | 2 |
 | Active plans | 1 |
 | Wrapups | 2 |
-| Active guidelines | 0 |
+| Active guidelines | 2 |
 
 ## Cross-reference graph
 
@@ -83,9 +83,13 @@ ar-controllers   → ar-services, ar-async-dispatch, ar-noticable
 ar-extensions    → (leaf)
 
 ar-types-serializers → ar-noticable, ar-errors-observability
+
+GUIDELINES       → ar-services, ar-errors-observability, ar-noticable
 ```
 
-## Shared knowledge
+## Conventions
 
-`~/.claude/knowledge/` contains baseline guidance applied to all projects:
-`GUIDELINES.md`, `INDEX.md`, plus `rb-*.md` (Ruby/Rails patterns) and `ui-ux-patterns.md`. Those are referenced from `CLAUDE.md` but not copied here.
+- **`ar-*`** — architecture deep-dives, one per subsystem. **`biz-*`** — what/who/why.
+- **Living docs** (everything except `wrapups/`) track current behavior and are refreshed by `/forge:refresh`.
+- **`wrapups/@*.md`** are point-in-time engagement records — historical, never rewritten.
+- Reusable Ruby/Rails best practices and baseline guidelines are maintained outside this repository and copied in (genericized) when needed — never linked out to, so in-repo references stay resolvable for every contributor.

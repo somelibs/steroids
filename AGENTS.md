@@ -17,7 +17,7 @@ A structured, machine-readable knowledge base lives at `knowledge/`:
 - `knowledge/plans/STATUS.md` — current focus and progress tracking
 - `knowledge/plans/@YYYY-MM-DD-NN-*.md` — forward-looking design plans
 - `knowledge/wrapups/@YYYY-MM-DD-NN-*.md` — point-in-time engagement records (commit history with context)
-- `knowledge/GUIDELINES.md` — project-specific development guidelines (shared baseline lives in `~/.claude/knowledge/GUIDELINES.md`)
+- `knowledge/GUIDELINES.md` — project-specific development guidelines (extends a project-agnostic baseline maintained outside this repository)
 
 This document (AGENTS.md / CLAUDE.md) is the user-facing API tour. Reach for the knowledge base when you need the *why* behind a decision, the cross-cutting picture, or the engagement timeline.
 

@@ -86,9 +86,9 @@ Steroids::Errors::Base
 ## Naming conventions in use
 
 - Files mirror Zeitwerk constants exactly (no overrides except the gem inflector at `lib/steroids.rb`).
-- Class-level state lives in `@@…` (e.g. `@@wrap_in_transaction`) or `class_attribute` (e.g. `report_to_observability`).
+- Class-level state lives in `@@…` (e.g. `@@wrap_in_transaction` global default) or `class_attribute` (e.g. `report_to_observability`, `wrap_in_transaction_override` for the per-class transaction opt-out).
 - Instance-level steroids state uses `@steroids_*` (e.g. `@steroids_force`, `@steroids_skip_callbacks`, `@steroids_noticable_runtime`) to avoid collisions with subclass ivars.
-- Test fixtures live under `test/services/` and use ActiveJob's `:test` adapter.
+- Specs live under `spec/` (RSpec, migrated from Minitest 2026-06-03), mirroring `lib/` — e.g. `spec/steroids/services/`, `spec/steroids/extensions/`. Async specs use ActiveJob's `:test` adapter.
 
 ## What's NOT here
 

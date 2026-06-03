@@ -7,7 +7,7 @@ A flat list of every user-facing capability the gem ships, with pointers into th
 - **`Steroids::Services::Base`** — base class for service objects. One `def process` per class.
 - **Lifecycle hooks** — `before_process`, `after_process`, `rescue!`, `ensure!`.
 - **Flow control** — `drop!(message)` halts execution; auto-`drop!` when `errors.any?` after `process`.
-- **Implicit transaction** — `process` runs inside `ActiveRecord::Base.transaction` (toggle via `@@wrap_in_transaction`).
+- **Implicit transaction** — `process` runs inside `ActiveRecord::Base.transaction`. Global default via `@@wrap_in_transaction`; per-class opt-out via the `wrap_in_transaction false` macro (for services that mainly hit an external API).
 - **Control flags** — `force:` (bypass `drop!`), `skip_callbacks:` (skip before/after hooks).
 - **`async_only!`** — class-level marker that forbids inline `.call`/`.call_sync`.
 

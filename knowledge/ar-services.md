@@ -36,7 +36,7 @@ end
 
 ```
 exec_process
-  ├── process_wrapper                            # opens ActiveRecord::Base.transaction (if @@wrap_in_transaction)
+  ├── process_wrapper                            # opens ActiveRecord::Base.transaction (unless opted out)
   │     ├── run_before_callbacks                 # unless @steroids_skip_callbacks
   │     │     ├── self.class.steroids_before_callbacks.each → send_apply
   │     │     └── send_apply(:before_process)
@@ -104,7 +104,19 @@ Without a block, `errors.any?` after `process` triggers `drop!`, which surfaces 
 
 ## Transactions
 
-`@@wrap_in_transaction = true` by default — `process_wrapper` wraps `process` in `ActiveRecord::Base.transaction`. To disable globally, override the class variable in an initializer. There is no per-service knob (yet).
+`process_wrapper` wraps `process` in `ActiveRecord::Base.transaction` by default. Resolution is two-tiered:
+
+- **Global default** — `@@wrap_in_transaction = true` (class variable). Override in an initializer to flip the default for every service.
+- **Per-class override** — `wrap_in_transaction false` (class macro, shipped 2026-06-03) sets the `wrap_in_transaction_override` `class_attribute`. When non-nil it wins over the global; when `nil` (the default) the global applies.
+
+```ruby
+class SyncPriceService < Steroids::Services::Base
+  wrap_in_transaction false   # 3rd-party round-trip — don't hold a DB connection open
+  def process; price.gateway.publish_once!; end
+end
+```
+
+Use the per-class opt-out for services that primarily hit an external API (payment gateway, etc.) so a slow network round-trip doesn't pin a pooled DB connection / extend the transaction boundary across remote latency. `wrap_in_transaction?` reads the override first and falls back to `@@wrap_in_transaction`.
 
 A `drop!` inside `process` raises a Steroids `RuntimeError` which is caught **inside** `process_wrapper`, so the transaction **rolls back** before the rescue runs. Same for any other `StandardError` (it propagates out of `process_wrapper`, rolling back the transaction, then hits `exec_process`'s outer rescue).
 
@@ -127,4 +139,4 @@ RSpec.describe MyService do
 end
 ```
 
-Or via the class entry point with a block. The test suite (`test/services/async_service_test.rb`) uses ActiveJob's `:test` adapter to assert enqueue behavior. See [[ar-async-dispatch]] for the async test fixtures.
+Or via the class entry point with a block. The suite is **RSpec** (migrated from Minitest on 2026-06-03); service specs live under `spec/steroids/services/` (`base_spec.rb`, `lifecycle_spec.rb`, `async_dispatch_spec.rb`, `option_split_spec.rb`) and use ActiveJob's `:test` adapter to assert enqueue behavior. See [[ar-async-dispatch]] for the async dispatch specs.

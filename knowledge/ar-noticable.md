@@ -90,4 +90,4 @@ It is **not** automatically flipped inside `AsyncServiceJob#perform` (the worker
 
 - The `RuntimeException` class on this module (`< Steroids::Errors::Base`) is what `to_exception` returns. It is **distinct** from the `RuntimeError` class in `Services::Base` used internally by `drop!`.
 - `flash_key` is what the controller block's `flash_key:` kwarg is bound to — see [[ar-services]] block form.
-- `dispatch_mode` interplay with `success_notice` is exercised by `test/services/async_service_test.rb` (the `HashNoticeService`, `StringNoticeService`, `PartialHashNoticeService`, `NoNoticeService` fixtures cover all four rows of the table above).
+- `dispatch_mode` interplay with `success_notice` is exercised by the async dispatch specs (`spec/steroids/services/async_dispatch_spec.rb`, `spec/steroids/support/servicable_async_spec.rb`) — fixtures covering Hash-full / String-suffix / partial-Hash-fallback / no-notice-fallback exercise all four rows of the table above.

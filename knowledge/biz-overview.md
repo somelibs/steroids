@@ -39,7 +39,7 @@ Dev/test only: `active_model_serializers ~> 0.10.14`, `sqlite3 ~> 1.4`.
 
 ## Adjacent docs
 
-- Root [[CLAUDE]] (== `AGENTS.md`) — agent guidance and per-feature usage examples.
-- Root [[README]] — user-facing introduction and full API tour.
-- [[CHANGELOG]] — release notes (Keep a Changelog format).
+- Root `CLAUDE.md` (== `AGENTS.md`) — agent guidance and per-feature usage examples.
+- Root `README.md` — user-facing introduction and full API tour.
+- Root `CHANGELOG.md` — release notes (Keep a Changelog format).
 - Forge knowledge: [[ar-overview]], [[MASTER]], [[plans/STATUS]].

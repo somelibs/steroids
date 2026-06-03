@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — per-class transaction opt-out
+- **`Steroids::Services::Base.wrap_in_transaction(false)`** — class macro that opts a single service out of the automatic `ActiveRecord::Base.transaction` wrap (backed by a new `wrap_in_transaction_override` `class_attribute`). Use it for services that primarily hit a third-party API so a slow network round-trip doesn't hold a pooled DB connection open or extend the transaction boundary across remote latency. When unset (`nil`), the global `@@wrap_in_transaction` default still applies. Resolves the long-standing "should `@@wrap_in_transaction` be per-service?" backlog item.
+
+### Changed — test framework
+- **Migrated the test suite from Minitest to RSpec.** Specs now live under `spec/` (mirroring `lib/`), 220 examples / 0 failures. Adds `rspec` (~> 3.13), `rspec-rails` (~> 7.1), and `simplecov` (~> 0.22) as development-group gems; the old `test/` Minitest suite and `bundle exec rake test` runner are replaced by `bundle exec rspec`. The six pre-existing service-call-contract errors tracked in earlier (Minitest-era) notes are gone — the migration settled the call contract they hinged on (block-less `.call` raises on failure; the block form captures).
+
+### Documentation
+- **Rewrote `README.md`** as a single comprehensive, consolidated API tour (services, noticable, controller integration, async dispatch, error hierarchy, logger, extensions, types) with per-section "dos and don'ts". Corrected stale claims from the prior revision: Ruby ≥ 3.3 / Rails ≥ 7 (was 3.0 / 7.1), RSpec (was Minitest), the real `wrap_in_transaction false` macro (was a non-existent `self.wrap_in_transaction =` setter), block-less `.call` **raises** on failure (was "returns nil"), and removed the non-existent `async:` control flag.
+
 ### Fixed
 - **`Steroids::Extensions::MethodExtension#apply`** — switched from `self.yield(...)` to `self.call(...)`. `Method` has no `yield`; the method only worked on Procs (since `Proc#yield` is an alias for `Proc#call`). Now works on both, matching the docstring intent and unblocking `method.apply` for any consumer.
 - **`Steroids::Logger#print`** — the `notify(level, ...)` call now receives the original `@exception` (or `@input`), not the formatted output string. `notify` filters on `input.is_a?(Exception)`, so passing the formatted String meant the notifier callback **never fired** for exceptions. Now `Steroids::Logger.notifier = proc { |exc| ... }` correctly invokes for `:error` / `:warn` level exceptions.
