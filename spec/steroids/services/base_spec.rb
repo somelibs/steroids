@@ -203,21 +203,34 @@ RSpec.describe Steroids::Services::Base do
   end
 
   describe "transaction wrapping" do
-    it "is enabled by default at the global level" do
-      expect(described_class.class_variable_get(:@@wrap_in_transaction)).to be true
-    end
-
-    it "inherits the global default" do
+    it "wraps by default, with no shared class variable that could leak" do
+      expect(described_class.class_variable_defined?(:@@wrap_in_transaction)).to be false
       expect(BaseServiceSpec::TransactionWrappedService.new.send(:wrap_in_transaction?)).to be true
     end
 
-    it "can be opted out of per-class" do
+    it "can be opted out of per-class via the macro" do
       expect(BaseServiceSpec::TransactionOptedOutService.new.send(:wrap_in_transaction?)).to be false
     end
 
-    it "applies per-class without leaking between classes" do
+    it "does not leak a per-class opt-out to sibling services" do
       expect(BaseServiceSpec::TransactionWrappedService.new.send(:wrap_in_transaction?)).to be true
       expect(BaseServiceSpec::TransactionOptedOutService.new.send(:wrap_in_transaction?)).to be false
+    end
+
+    # Regression: the wrap flag used to be a shared `@@wrap_in_transaction` class
+    # variable. A subclass assigning it wrote the ANCESTOR's variable, so a
+    # single `@@wrap_in_transaction = false` silently disabled the transaction
+    # wrap for EVERY service in the host app. The flag is now a per-class
+    # class_attribute; a stray class-variable assignment must be inert.
+    it "ignores a stray @@wrap_in_transaction class-variable assignment (the old footgun)" do
+      stray = Class.new(Steroids::Services::Base) do
+        class_variable_set(:@@wrap_in_transaction, false) # simulate the old mistake
+        def process; end
+      end
+
+      expect(stray.new.send(:wrap_in_transaction?)).to be true
+      expect(BaseServiceSpec::TransactionWrappedService.new.send(:wrap_in_transaction?)).to be true
+      expect(described_class.class_variable_defined?(:@@wrap_in_transaction)).to be false
     end
   end
 end

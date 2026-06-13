@@ -108,12 +108,15 @@ RSpec.describe Steroids::Services::Base, "lifecycle hooks & controller patterns"
     end
   end
 
-  # Disable transaction wrapping for tests that don't touch the DB.
+  # Disable transaction wrapping for tests that don't touch the DB. Uses the
+  # per-class `wrap_in_transaction_override` class_attribute (reset to nil after)
+  # — the shared `@@wrap_in_transaction` class variable was removed because a
+  # subclass assigning it leaked the setting across the whole hierarchy.
   around do |example|
-    described_class.class_variable_set(:@@wrap_in_transaction, false)
+    described_class.wrap_in_transaction_override = false
     example.run
   ensure
-    described_class.class_variable_set(:@@wrap_in_transaction, true)
+    described_class.wrap_in_transaction_override = nil
   end
 
   describe "basic class-method usage" do

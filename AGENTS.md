@@ -2,6 +2,19 @@
 
 This file provides guidance to AI Agents when working with code in this repository.
 
+## Development guidelines — mandatory, load before any work
+
+**Before producing anything in this repository — code, docs, tests, commits, reviews — you MUST load the development guidelines and treat them as binding, not advisory.** They gate all work; do not skip them because a task "looks trivial."
+
+- **Project guidelines — [`./knowledge/GUIDELINES.md`](knowledge/GUIDELINES.md).** These are the canonical rules for this repository and they extend a project-agnostic baseline maintained outside this repository. Both layers apply; **project-specific guidelines take precedence on conflict.**
+
+The project guidelines are rendered inline below so their substance is binding without opening another file. Read this section first; consult `knowledge/GUIDELINES.md` for the full rationale, code, and cross-references.
+
+### Active project guidelines (binding)
+
+- **S1 — Raise Steroids errors with the compact form: `raise SomeError.new(message: "...", status: ..., log: true)`.** Steroids errors (and the internal `drop!`) consume keyword options via `.new(...)`; the exploded form `raise SomeError, message: "..."` silently drops them. `.rubocop.yml` pins `Style/RaiseArgs: compact` to defend this. (→ `knowledge/GUIDELINES.md` §S1)
+- **S2 — Noticable messages are Strings, never ActiveRecord-style attribute keys.** Use `errors.add("Human message")`, `errors.add("Human message", exception)`, or `notices.add("Human message")`; the first argument is `typed!(String)`, so `errors.add(:base, "...")` / `errors.add(:field, "...")` raise `TypeError`. Messages may surface verbatim in a flash or API payload — write full sentences. (→ `knowledge/GUIDELINES.md` §S2)
+
 ## Overview
 
 Steroids is a Rails enhancement gem that provides powerful abstractions for services, serializers, and various Ruby extensions. It's designed to make Rails applications more maintainable and provide better patterns for common tasks.

@@ -4,21 +4,25 @@ module Steroids
       include Steroids::Support::ServicableMethods
       include Steroids::Support::NoticableMethods
 
-      @@wrap_in_transaction = true
       @@skip_callbacks = false
 
-      # Per-class opt-out for the `ActiveRecord::Base.transaction` wrap. The
-      # global `@@wrap_in_transaction` default is still `true`; a service that
-      # primarily talks to a 3rd party (Stripe, etc.) should set this to false
-      # so the network round-trip doesn't hold a DB connection / extend a
-      # transaction boundary across an external call.
+      # Per-class opt-out for the `ActiveRecord::Base.transaction` wrap,
+      # defaulting to ON (wrapped). A service that primarily talks to a 3rd party
+      # (Stripe, etc.) sets `wrap_in_transaction false` so the network round-trip
+      # doesn't hold a DB connection / extend a transaction boundary across an
+      # external call.
       #
       #   class SyncPriceService < Steroids::Services::Base
       #     wrap_in_transaction false
       #     def process; price.gateway.publish_once!; end
       #   end
       #
-      # When unset (nil), falls back to the global `@@wrap_in_transaction`.
+      # This is a per-class `class_attribute` (inherits correctly), NOT a shared
+      # class variable, on purpose: assigning a Ruby `@@class_variable` in a
+      # subclass writes the ANCESTOR's variable, so a single subclass opting out
+      # would have silently disabled the wrap for EVERY sibling service across
+      # the whole app. Always use the `wrap_in_transaction` macro below — never a
+      # class variable. When unset (nil) the wrap defaults to true.
       class_attribute :wrap_in_transaction_override, instance_accessor: false, default: nil
 
       # Init-time options that are NOT forwarded to `initialize`, but instead
@@ -134,9 +138,8 @@ module Steroids
 
       def wrap_in_transaction?
         override = self.class.wrap_in_transaction_override
-        return @@wrap_in_transaction if override.nil?
-
-        override
+        # nil (unset) → wrap; otherwise honor the per-class override (true/false).
+        override.nil? || override
       end
 
       def run_before_callbacks
