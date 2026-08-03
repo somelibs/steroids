@@ -3,7 +3,7 @@
 [![Gem Version](https://img.shields.io/badge/version-1.6.1-green)](https://rubygems.org/gems/steroids)
 [![Rails](https://img.shields.io/badge/Rails-%3E%3D%207-red)](https://rubyonrails.org/)
 [![Ruby](https://img.shields.io/badge/Ruby-%3E%3D%203.3-red)](https://www.ruby-lang.org/)
-[![Specs](https://img.shields.io/badge/specs-RSpec-brightgreen)](https://github.com/somelibs/steroids)
+[![Specs](https://img.shields.io/badge/specs-RSpec-brightgreen)](https://github.com/wandernb/steroids)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE.md)
 
 **Steroids** supercharges Rails applications with a battle-tested **service object** layer, a unified **notice / error** model, a rich **HTTP error hierarchy**, a colorful **logger**, and a handful of pragmatic **Ruby core extensions**. The goal: push business logic out of controllers and models into small, testable, composable objects — without ceremony.
@@ -122,7 +122,7 @@ Add Steroids to your `Gemfile`:
 gem "steroids"
 
 # Or track the repository directly
-gem "steroids", git: "https://github.com/somelibs/steroids.git", branch: "master"
+gem "steroids", git: "https://github.com/wandernb/steroids.git", branch: "master"
 ```
 
 Then:
@@ -1057,7 +1057,7 @@ $ bundle exec rspec
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at <https://github.com/somelibs/steroids>.
+Bug reports and pull requests are welcome on GitHub at <https://github.com/wandernb/steroids>.
 
 ## Disclaimer
 

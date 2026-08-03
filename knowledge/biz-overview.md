@@ -5,7 +5,7 @@
 **License:** MIT.
 **Required Ruby:** `>= 3.3`. **Required Rails:** `>= 7` (Gemfile pins `~> 7.1`).
 **Author:** Paul Reboh (`paul@reboh.net`).
-**Repo:** https://github.com/somelibs/steroids.
+**Repo:** https://github.com/wandernb/steroids.
 
 ## Why it exists
 

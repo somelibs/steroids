@@ -13,7 +13,7 @@ Gem::Specification.new do | spec |
   spec.description = spec.summary
   spec.authors     = ["Paul Reboh"]
   spec.email       = "paul@reboh.net"
-  spec.homepage    = "https://github.com/somelibs/steroids"
+  spec.homepage    = "https://github.com/wandernb/steroids"
   spec.license     = "MIT"
   spec.required_ruby_version = ">= 3.3"
 
